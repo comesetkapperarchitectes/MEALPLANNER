@@ -1,0 +1,14 @@
+{
+  "name": "meal-planner-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for importing recipes to meal-planner Supabase",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@supabase/supabase-js": "^2.39.0"
+  }
+}
