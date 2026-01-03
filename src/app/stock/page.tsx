@@ -142,19 +142,19 @@ export default function StockPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Stock</h1>
-        <Button onClick={() => setDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Ajouter
+        <h1 className="hidden md:block text-3xl font-bold">Stock</h1>
+        <Button onClick={() => setDialogOpen(true)} size="sm" className="md:size-default ml-auto">
+          <Plus className="h-4 w-4 md:mr-2" />
+          <span className="hidden md:inline">Ajouter</span>
         </Button>
       </div>
 
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Rechercher un ingrédient..."
+          placeholder="Rechercher..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="pl-10"

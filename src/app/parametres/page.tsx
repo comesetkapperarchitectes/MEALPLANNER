@@ -53,8 +53,8 @@ export default function ParametresPage() {
   const stapleIngredients = ingredients.filter((i) => i.is_staple);
 
   return (
-    <div className="space-y-6 max-w-2xl">
-      <h1 className="text-3xl font-bold">Paramètres</h1>
+    <div className="space-y-4 md:space-y-6 max-w-2xl">
+      <h1 className="hidden md:block text-3xl font-bold">Paramètres</h1>
 
       {/* General settings */}
       <Card>

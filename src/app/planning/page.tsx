@@ -10,6 +10,7 @@ import { MEAL_TYPES, DAYS } from "@/lib/constants";
 import { getMonday, formatDate } from "@/lib/utils/dateUtils";
 import {
   WeekNavigator,
+  DaySelector,
   MealSlotDialog,
   AddRecipeDialog,
   ServingsDialog,
@@ -26,6 +27,12 @@ export default function PlanningPage() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedDayIndex, setSelectedDayIndex] = useState(() => {
+    // Default to current day of the week (0 = Monday)
+    const today = new Date();
+    const dayOfWeek = today.getDay();
+    return dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Convert Sunday (0) to 6, Monday (1) to 0
+  });
 
   // Dialog states
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
@@ -221,10 +228,85 @@ export default function PlanningPage() {
     return maxMeals === 0 ? 100 : 30 + (maxMeals * 60);
   };
 
+  // Render a single day's meals (used for mobile view)
+  const renderDayMeals = (dayIndex: number) => (
+    <div className="space-y-3">
+      {MEAL_TYPES.map(({ type, label }) => {
+        const meals = getMealsForSlot(weekDates[dayIndex], type);
+        const allPrepared = meals.length > 0 && meals.every(m => m.is_prepared);
+        return (
+          <Card
+            key={`${DAYS[dayIndex]}-${type}`}
+            className={`relative transition-colors cursor-pointer hover:shadow-md ${
+              allPrepared ? "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800" : ""
+            }`}
+            onClick={() => openDetailDialog(weekDates[dayIndex], type)}
+          >
+            <CardHeader className="p-3 pb-2">
+              <CardTitle className="text-sm text-muted-foreground flex items-center justify-between">
+                <span>{label}</span>
+                {allPrepared && <Check className="h-4 w-4 text-green-600" />}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 pt-0">
+              {meals.length === 0 ? (
+                <>
+                  <div className="h-[20px]" />
+                  <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
+                    <span className="text-3xl font-bold">+</span>
+                  </div>
+                </>
+              ) : (
+                <div className="space-y-2">
+                  {meals.map((meal) => (
+                    <div
+                      key={meal.id}
+                      className={`flex rounded-lg border overflow-hidden ${
+                        meal.is_prepared
+                          ? "bg-green-100/50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
+                          : "bg-background"
+                      }`}
+                    >
+                      <div className="flex-1 p-3 min-w-0">
+                        <p className="font-medium">{meal.recipe?.name}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <CategoryBadge
+                            category={meal.recipe?.category as Category}
+                            className="text-xs"
+                          />
+                          <span className="text-sm text-muted-foreground">{meal.servings} pers.</span>
+                          {meal.is_prepared && (
+                            <Badge variant="secondary" className="text-xs bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                              Préparé
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      {meal.recipe?.image_path && (
+                        <div className="w-20 h-20 flex-shrink-0">
+                          <img
+                            src={meal.recipe.image_path}
+                            alt={meal.recipe.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        );
+      })}
+    </div>
+  );
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Planning de la semaine</h1>
+    <div className="space-y-4 md:space-y-6">
+      {/* Header - desktop only */}
+      <div className="hidden md:flex md:items-center md:justify-between">
+        <h1 className="text-3xl font-bold">Planning</h1>
         <WeekNavigator
           weekStart={weekStart}
           onNavigate={navigateWeek}
@@ -236,82 +318,102 @@ export default function PlanningPage() {
       {isLoading ? (
         <div className="text-center py-12">Chargement...</div>
       ) : (
-        <div className="grid grid-cols-7 gap-2">
-          {DAYS.map((day, dayIndex) => (
-            <div key={day} className="space-y-2">
-              <div className="text-center font-medium p-2 bg-muted rounded-lg">
-                <div>{day}</div>
-                <div className="text-sm text-muted-foreground">
-                  {formatDisplayDate(weekDates[dayIndex])}
+        <>
+          {/* Mobile day selector */}
+          <DaySelector
+            selectedDayIndex={selectedDayIndex}
+            onSelectDay={setSelectedDayIndex}
+            onNavigateWeek={navigateWeek}
+            weekDates={weekDates}
+            formatDisplayDate={formatDisplayDate}
+            days={DAYS}
+          />
+
+          {/* Mobile view - single day */}
+          <div className="md:hidden">
+            {renderDayMeals(selectedDayIndex)}
+          </div>
+
+          {/* Desktop view - 7 day grid */}
+          <div className="hidden md:grid grid-cols-7 gap-2">
+            {DAYS.map((day, dayIndex) => (
+              <div key={day} className="space-y-2">
+                <div className="text-center font-medium p-2 bg-muted rounded-lg">
+                  <div>{day}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {formatDisplayDate(weekDates[dayIndex])}
+                  </div>
                 </div>
-              </div>
-              {MEAL_TYPES.map(({ type, label }) => {
-                const meals = getMealsForSlot(weekDates[dayIndex], type);
-                const allPrepared = meals.length > 0 && meals.every(m => m.is_prepared);
-                return (
-                  <Card
-                    key={`${day}-${type}`}
-                    className={`transition-colors cursor-pointer hover:shadow-md ${
-                      allPrepared ? "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800" : ""
-                    }`}
-                    style={{ minHeight: `${getMinHeight(type)}px` }}
-                    onClick={() => openDetailDialog(weekDates[dayIndex], type)}
-                  >
-                    <CardHeader className="p-2 pb-1">
-                      <CardTitle className="text-xs text-muted-foreground flex items-center justify-between">
-                        <span>{label}</span>
-                        {allPrepared && <Check className="h-3 w-3 text-green-600" />}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-2 pt-0 space-y-1">
-                      {meals.length === 0 ? (
-                        <div className="flex items-center justify-center h-10 text-muted-foreground">
-                          <span className="text-xs">Cliquer pour ajouter</span>
-                        </div>
-                      ) : (
-                        meals.map((meal) => (
-                          <div
-                            key={meal.id}
-                            className={`flex rounded border text-xs overflow-hidden ${
-                              meal.is_prepared
-                                ? "bg-green-100/50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
-                                : "bg-background"
-                            }`}
-                          >
-                            <div className="flex-1 p-1.5 min-w-0">
-                              <p className="font-medium line-clamp-1">{meal.recipe?.name}</p>
-                              <div className="flex items-center gap-1 mt-0.5">
-                                <CategoryBadge
-                                  category={meal.recipe?.category as Category}
-                                  className="text-[10px] px-1 py-0"
-                                />
-                                <span className="text-muted-foreground">{meal.servings}p</span>
-                                {meal.is_prepared && (
-                                  <Badge variant="secondary" className="text-[10px] px-1 py-0 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
-                                    Fait
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
-                            {meal.recipe?.image_path && (
-                              <div className="w-12 h-12 flex-shrink-0">
-                                <img
-                                  src={meal.recipe.image_path}
-                                  alt={meal.recipe.name}
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
-                            )}
+                {MEAL_TYPES.map(({ type, label }) => {
+                  const meals = getMealsForSlot(weekDates[dayIndex], type);
+                  const allPrepared = meals.length > 0 && meals.every(m => m.is_prepared);
+                  return (
+                    <Card
+                      key={`${day}-${type}`}
+                      className={`transition-colors cursor-pointer hover:shadow-md ${
+                        allPrepared ? "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800" : ""
+                      }`}
+                      style={{ minHeight: `${getMinHeight(type)}px` }}
+                      onClick={() => openDetailDialog(weekDates[dayIndex], type)}
+                    >
+                      <CardHeader className="p-2 pb-1">
+                        <CardTitle className="text-xs text-muted-foreground flex items-center justify-between">
+                          <span>{label}</span>
+                          {allPrepared && <Check className="h-3 w-3 text-green-600" />}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-2 pt-0">
+                        {meals.length === 0 ? (
+                          <div className="flex items-center justify-center py-1 text-muted-foreground">
+                            <span className="text-xl font-bold">+</span>
                           </div>
-                        ))
-                      )}
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          ))}
-        </div>
+                        ) : (
+                          <div className="space-y-1">
+                            {meals.map((meal) => (
+                            <div
+                              key={meal.id}
+                              className={`flex rounded border text-xs overflow-hidden ${
+                                meal.is_prepared
+                                  ? "bg-green-100/50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
+                                  : "bg-background"
+                              }`}
+                            >
+                              <div className="flex-1 p-1.5 min-w-0">
+                                <p className="font-medium line-clamp-1">{meal.recipe?.name}</p>
+                                <div className="flex items-center gap-1 mt-0.5">
+                                  <CategoryBadge
+                                    category={meal.recipe?.category as Category}
+                                    className="text-[10px] px-1 py-0"
+                                  />
+                                  <span className="text-muted-foreground">{meal.servings}p</span>
+                                  {meal.is_prepared && (
+                                    <Badge variant="secondary" className="text-[10px] px-1 py-0 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                                      Fait
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                              {meal.recipe?.image_path && (
+                                <div className="w-12 h-12 flex-shrink-0">
+                                  <img
+                                    src={meal.recipe.image_path}
+                                    alt={meal.recipe.name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                              )}
+                            </div>
+                            ))}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
       {/* Dialogs */}

@@ -30,7 +30,7 @@ export function RecipeSheetDialog({
 }: RecipeSheetDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-[95vw] md:max-w-2xl max-h-[90vh] md:max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Button
@@ -52,7 +52,7 @@ export function RecipeSheetDialog({
           <div className="space-y-6">
             {/* Recipe header */}
             <div>
-              <h2 className="text-2xl font-bold">{recipe.name}</h2>
+              <h2 className="text-xl md:text-2xl font-bold">{recipe.name}</h2>
               <div className="flex flex-wrap items-center gap-2 mt-2">
                 <CategoryBadge category={recipe.category} />
                 <Badge variant="outline" className="text-base">

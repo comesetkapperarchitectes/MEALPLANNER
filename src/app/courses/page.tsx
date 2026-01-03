@@ -226,24 +226,26 @@ export default function CoursesPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Liste de courses</h1>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={() => navigateWeek(-1)}>
+    <div className="space-y-4 md:space-y-6">
+      {/* Header - responsive */}
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <h1 className="hidden md:block text-3xl font-bold">Courses</h1>
+        <div className="flex items-center gap-1 md:gap-2">
+          <Button variant="outline" size="icon" className="h-8 w-8 md:h-10 md:w-10" onClick={() => navigateWeek(-1)}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <span className="font-medium min-w-[200px] text-center">
-            Semaine du {formatDisplayDate(formatDate(weekStart))}
+          <span className="font-medium text-sm md:text-base min-w-[120px] md:min-w-[200px] text-center">
+            <span className="hidden md:inline">Semaine du </span>
+            {formatDisplayDate(formatDate(weekStart))}
           </span>
-          <Button variant="outline" size="icon" onClick={() => navigateWeek(1)}>
+          <Button variant="outline" size="icon" className="h-8 w-8 md:h-10 md:w-10" onClick={() => navigateWeek(1)}>
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
       {checkedCount > 0 && (
-        <Button onClick={addToStock}>
+        <Button onClick={addToStock} size="sm" className="md:size-default w-full md:w-auto">
           <ShoppingCart className="h-4 w-4 mr-2" />
           Ajouter {checkedCount} article{checkedCount > 1 ? "s" : ""} au stock
         </Button>

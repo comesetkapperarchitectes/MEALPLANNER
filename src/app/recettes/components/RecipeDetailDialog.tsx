@@ -43,6 +43,7 @@ interface RecipeDetailDialogProps {
   onOpenChange: (open: boolean) => void;
   recipe: Recipe | null;
   editMode: boolean;
+  isCreating?: boolean;
   // View mode props
   onStartEdit: () => void;
   onDelete: () => void;
@@ -73,6 +74,7 @@ export function RecipeDetailDialog({
   onOpenChange,
   recipe,
   editMode,
+  isCreating = false,
   onStartEdit,
   onDelete,
   onImageUpload,
@@ -95,6 +97,7 @@ export function RecipeDetailDialog({
   onCancelEdit,
   isSaving,
 }: RecipeDetailDialogProps) {
+  const showForm = editMode || isCreating;
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -124,17 +127,17 @@ export function RecipeDetailDialog({
       onOpenChange(o);
       if (!o) onCancelEdit();
     }}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader className="sr-only">
-          <DialogTitle>{recipe?.name || "Recette"}</DialogTitle>
+      <DialogContent className="max-w-[95vw] md:max-w-2xl max-h-[90vh] md:max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{isCreating ? "Nouvelle recette" : (recipe?.name || "Recette")}</DialogTitle>
         </DialogHeader>
 
         {/* View Mode */}
-        {recipe && !editMode && (
+        {recipe && !showForm && (
           <div className="space-y-4">
-            <div className="flex gap-4">
-              <div className="flex-1 flex flex-col gap-3">
-                <h2 className="text-xl font-bold">{recipe.name}</h2>
+            <div className="flex flex-col-reverse gap-4 sm:flex-row">
+              <div className="flex-1 flex flex-col gap-2 md:gap-3">
+                <h2 className="text-lg md:text-xl font-bold">{recipe.name}</h2>
                 <CategoryBadge category={recipe.category} className="w-fit" />
                 <div className="text-sm text-muted-foreground space-y-1">
                   <p>{recipe.base_servings} personnes</p>
@@ -143,7 +146,7 @@ export function RecipeDetailDialog({
                 </div>
               </div>
               {recipe.image_path && (
-                <div className="w-52 h-52 flex-shrink-0 rounded-lg overflow-hidden">
+                <div className="w-full h-40 sm:w-40 sm:h-40 md:w-52 md:h-52 flex-shrink-0 rounded-lg overflow-hidden">
                   <img src={recipe.image_path} alt={recipe.name} className="w-full h-full object-cover" />
                 </div>
               )}
@@ -174,9 +177,9 @@ export function RecipeDetailDialog({
               </div>
             )}
 
-            <div className="flex justify-between pt-4 border-t">
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={onImageUpload} disabled={uploadingImage}>
+            <div className="flex flex-col gap-2 pt-4 border-t sm:flex-row sm:justify-between">
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Button variant="outline" onClick={onImageUpload} disabled={uploadingImage} className="w-full sm:w-auto">
                   {uploadingImage ? (
                     <LoadingSpinner className="mr-2" />
                   ) : (
@@ -184,12 +187,12 @@ export function RecipeDetailDialog({
                   )}
                   {recipe.image_path ? "Changer l'image" : "Ajouter une image"}
                 </Button>
-                <Button variant="outline" onClick={onStartEdit}>
+                <Button variant="outline" onClick={onStartEdit} className="w-full sm:w-auto">
                   <Pencil className="h-4 w-4 mr-2" />
                   Modifier
                 </Button>
               </div>
-              <Button variant="destructive" onClick={onDelete}>
+              <Button variant="destructive" onClick={onDelete} className="w-full sm:w-auto">
                 <Trash2 className="h-4 w-4 mr-2" />
                 Supprimer
               </Button>
@@ -197,14 +200,14 @@ export function RecipeDetailDialog({
           </div>
         )}
 
-        {/* Edit Mode */}
-        {recipe && editMode && (
+        {/* Edit/Create Mode */}
+        {showForm && (
           <div className="space-y-4">
             <div className="flex gap-4">
               <div className="flex-1 space-y-3">
                 <div>
                   <Label>Nom</Label>
-                  <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
+                  <Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Nom de la recette" />
                 </div>
                 <div>
                   <Label>Catégorie</Label>
@@ -236,7 +239,7 @@ export function RecipeDetailDialog({
                   </div>
                 </div>
               </div>
-              {recipe.image_path && (
+              {recipe?.image_path && (
                 <div className="w-40 h-40 flex-shrink-0 rounded-lg overflow-hidden">
                   <img src={recipe.image_path} alt={recipe.name} className="w-full h-full object-cover" />
                 </div>
@@ -270,6 +273,7 @@ export function RecipeDetailDialog({
                 value={editInstructions}
                 onChange={(e) => setEditInstructions(e.target.value)}
                 className="min-h-[150px]"
+                placeholder="Instructions de préparation..."
               />
             </div>
 
@@ -278,13 +282,13 @@ export function RecipeDetailDialog({
                 <X className="h-4 w-4 mr-2" />
                 Annuler
               </Button>
-              <Button onClick={onSave} disabled={isSaving}>
+              <Button onClick={onSave} disabled={isSaving || !editName.trim()}>
                 {isSaving ? (
                   <LoadingSpinner className="mr-2" />
                 ) : (
                   <Save className="h-4 w-4 mr-2" />
                 )}
-                Enregistrer
+                {isCreating ? "Créer" : "Enregistrer"}
               </Button>
             </div>
           </div>
