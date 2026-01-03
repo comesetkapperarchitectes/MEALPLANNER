@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Check, Pencil, Trash2, ChefHat } from "lucide-react";
+import { Plus, Check, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -40,7 +40,7 @@ export function MealSlotDialog({
 }: MealSlotDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md top-[10%] translate-y-0 md:top-[50%] md:-translate-y-1/2">
         <DialogHeader>
           <DialogTitle>
             {selectedSlot && (
@@ -64,28 +64,37 @@ export function MealSlotDialog({
               {meals.map((meal) => (
                 <div
                   key={meal.id}
-                  className={`p-3 rounded-lg border ${
+                  className={`rounded-lg border overflow-hidden ${
                     meal.is_prepared
                       ? "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800"
                       : "bg-muted/30"
                   }`}
                 >
-                  <div className="flex items-start justify-between gap-2">
+                  <div className="flex h-20">
+                    {meal.recipe?.image_path && (
+                      <div
+                        className="w-20 flex-shrink-0 cursor-pointer"
+                        onClick={() => onOpenRecipe(meal)}
+                      >
+                        <img
+                          src={meal.recipe.image_path}
+                          alt={meal.recipe.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
                     <div
-                      className="flex-1 min-w-0 cursor-pointer hover:opacity-70"
+                      className="flex-1 p-2 min-w-0 cursor-pointer hover:opacity-70 flex flex-col justify-center"
                       onClick={() => onOpenRecipe(meal)}
                     >
-                      <p className="font-medium flex items-center gap-2">
-                        <ChefHat className="h-4 w-4 text-muted-foreground" />
-                        {meal.recipe?.name}
-                      </p>
-                      <div className="flex items-center gap-2 mt-1">
+                      <p className="font-medium line-clamp-1">{meal.recipe?.name}</p>
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
                         <CategoryBadge
                           category={meal.recipe?.category as Category}
                           className="text-xs"
                         />
                         <span className="text-sm text-muted-foreground">
-                          {meal.servings} personnes
+                          {meal.servings} pers.
                         </span>
                         {meal.is_prepared && (
                           <Badge className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 text-xs">
@@ -94,7 +103,7 @@ export function MealSlotDialog({
                         )}
                       </div>
                     </div>
-                    <div className="flex gap-1">
+                    <div className="flex items-center gap-1 p-2">
                       {!meal.is_prepared && (
                         <Button
                           size="icon"

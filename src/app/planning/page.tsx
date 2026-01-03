@@ -238,7 +238,7 @@ export default function PlanningPage() {
           <Card
             key={`${DAYS[dayIndex]}-${type}`}
             className={`relative transition-colors cursor-pointer hover:shadow-md ${
-              allPrepared ? "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800" : ""
+              allPrepared ? "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800" : "bg-muted/50"
             }`}
             onClick={() => openDetailDialog(weekDates[dayIndex], type)}
           >
@@ -351,7 +351,7 @@ export default function PlanningPage() {
                     <Card
                       key={`${day}-${type}`}
                       className={`transition-colors cursor-pointer hover:shadow-md ${
-                        allPrepared ? "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800" : ""
+                        allPrepared ? "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800" : "bg-muted/50"
                       }`}
                       style={{ minHeight: `${getMinHeight(type)}px` }}
                       onClick={() => openDetailDialog(weekDates[dayIndex], type)}

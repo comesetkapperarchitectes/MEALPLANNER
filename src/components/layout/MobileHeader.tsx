@@ -10,8 +10,8 @@ export function MobileHeader() {
 
   return (
     <>
-      <header className="md:hidden fixed top-0 left-0 right-0 bg-card border-b z-50">
-        <div className="flex items-center justify-between h-14 px-4">
+      <header className="md:hidden fixed top-0 left-0 right-0 h-[56px] bg-card border-b z-50">
+        <div className="flex items-center justify-between h-full px-4">
           <Link href="/" className="flex items-center gap-2">
             <ChefHat className="h-6 w-6 text-primary" />
             <span className="text-lg font-bold">MealPlanner</span>
@@ -41,7 +41,7 @@ export function MobileHeader() {
       {/* Dropdown menu */}
       <div
         className={cn(
-          "md:hidden fixed top-14 right-0 w-64 bg-card border-l border-b rounded-bl-lg shadow-lg z-50 transition-transform duration-200",
+          "md:hidden fixed top-[56px] right-0 w-64 bg-card border-l border-b rounded-bl-lg shadow-lg z-50 transition-transform duration-200",
           isMenuOpen ? "translate-x-0" : "translate-x-full"
         )}
       >

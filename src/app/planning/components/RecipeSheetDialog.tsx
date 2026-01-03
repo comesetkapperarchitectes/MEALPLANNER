@@ -30,8 +30,8 @@ export function RecipeSheetDialog({
 }: RecipeSheetDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] md:max-w-2xl max-h-[90vh] md:max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="w-full h-full max-w-full max-h-full md:w-auto md:h-auto md:max-w-2xl md:max-h-[85vh] rounded-none md:rounded-lg inset-0 md:inset-auto translate-x-0 translate-y-0 md:-translate-x-1/2 md:-translate-y-1/2 md:left-1/2 md:top-1/2 overflow-y-auto">
+        <DialogHeader className="sticky top-0 bg-background z-10 pb-2 border-b md:border-none">
           <DialogTitle className="flex items-center gap-2">
             <Button
               variant="ghost"
@@ -49,41 +49,46 @@ export function RecipeSheetDialog({
         {loading ? (
           <div className="text-center py-12">Chargement...</div>
         ) : recipe && meal ? (
-          <div className="space-y-6">
+          <div className="space-y-4">
+            {/* Recipe image */}
+            {recipe.image_path && (
+              <div className="w-full h-48 md:h-64 rounded-lg overflow-hidden">
+                <img
+                  src={recipe.image_path}
+                  alt={recipe.name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            )}
+
             {/* Recipe header */}
             <div>
-              <h2 className="text-xl md:text-2xl font-bold">{recipe.name}</h2>
-              <div className="flex flex-wrap items-center gap-2 mt-2">
-                <CategoryBadge category={recipe.category} />
-                <Badge variant="outline" className="text-base">
-                  {meal.servings} personnes
+              <h2 className="text-lg md:text-xl font-bold">{recipe.name}</h2>
+              <div className="flex flex-wrap items-center gap-2 mt-1">
+                <CategoryBadge category={recipe.category} className="text-xs" />
+                <Badge variant="outline" className="text-xs">
+                  {meal.servings} pers.
                 </Badge>
                 {recipe.prep_time && (
-                  <span className="flex items-center gap-1 text-sm text-muted-foreground">
-                    <Clock className="h-4 w-4" />
-                    Prépa: {recipe.prep_time} min
+                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Clock className="h-3 w-3" />
+                    {recipe.prep_time} min
                   </span>
                 )}
                 {recipe.cook_time && (
-                  <span className="flex items-center gap-1 text-sm text-muted-foreground">
-                    <Clock className="h-4 w-4" />
-                    Cuisson: {recipe.cook_time} min
+                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <Clock className="h-3 w-3" />
+                    {recipe.cook_time} min cuisson
                   </span>
                 )}
               </div>
-              {recipe.source_book && (
-                <p className="text-sm text-muted-foreground mt-2">
-                  Source: {recipe.source_book}
-                  {recipe.source_page && `, p.${recipe.source_page}`}
-                </p>
-              )}
             </div>
 
             {/* Ingredients */}
             {recipe.ingredients && recipe.ingredients.length > 0 && (
               <div>
-                <h3 className="text-lg font-semibold mb-3">Ingrédients</h3>
-                <div className="grid gap-2 sm:grid-cols-2">
+                <h3 className="text-sm font-semibold mb-2">Ingrédients</h3>
+                <div className="grid gap-1 sm:grid-cols-2">
                   {recipe.ingredients.map((ing, idx) => {
                     const ratio = meal.servings / recipe.base_servings;
                     const adjustedQty = Math.round(ing.quantity * ratio * 10) / 10;
@@ -95,16 +100,16 @@ export function RecipeSheetDialog({
                     return (
                       <div
                         key={idx}
-                        className="flex items-center justify-between gap-2 p-2 rounded-lg bg-muted/50"
+                        className="flex items-center justify-between gap-2 py-1 px-2 rounded bg-muted/50 text-xs"
                       >
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1">
                           <span className="font-medium">
                             {adjustedQty} {displayUnit}
                           </span>
                           <span>{ing.ingredient_name}</span>
                         </div>
                         {showNormalized && (
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-[10px] text-muted-foreground">
                             {adjustedNormalized}{ing.unit_normalized}
                           </span>
                         )}
@@ -118,18 +123,16 @@ export function RecipeSheetDialog({
             {/* Instructions */}
             {recipe.instructions && (
               <div>
-                <h3 className="text-lg font-semibold mb-3">Instructions</h3>
-                <div className="prose prose-sm max-w-none dark:prose-invert">
-                  <p className="whitespace-pre-wrap">{recipe.instructions}</p>
-                </div>
+                <h3 className="text-sm font-semibold mb-2">Instructions</h3>
+                <p className="text-xs whitespace-pre-wrap text-muted-foreground">{recipe.instructions}</p>
               </div>
             )}
 
             {/* Tags */}
             {recipe.tags && recipe.tags.length > 0 && (
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1">
                 {recipe.tags.map((tag) => (
-                  <Badge key={tag} variant="secondary">
+                  <Badge key={tag} variant="secondary" className="text-xs">
                     {tag}
                   </Badge>
                 ))}

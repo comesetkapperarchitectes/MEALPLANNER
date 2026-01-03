@@ -220,7 +220,7 @@ export default function RecettesPage() {
   };
 
   return (
-    <div className="space-y-4 md:space-y-6">
+    <>
       <input
         type="file"
         ref={fileInputRef}
@@ -229,10 +229,11 @@ export default function RecettesPage() {
         className="hidden"
       />
 
-      <h1 className="hidden md:block text-3xl font-bold">Recettes</h1>
+      {/* Desktop title */}
+      <h1 className="hidden md:block text-3xl font-bold mb-6">Recettes</h1>
 
-      {/* Search and filters - fixed on mobile */}
-      <div className="fixed top-14 left-0 right-0 z-40 bg-white dark:bg-zinc-950 shadow-md px-4 pt-3 pb-3 md:relative md:top-auto md:z-auto md:shadow-none md:bg-transparent md:px-0 md:pt-0 md:pb-0">
+      {/* Search and filters - fixed on mobile at top-14 (56px), right under header */}
+      <div className="fixed top-14 left-0 right-0 z-40 bg-background border-b px-4 py-3 md:relative md:top-auto md:z-auto md:border-none md:px-0 md:py-0 md:mb-4">
         <div className="flex flex-col gap-3 md:flex-row md:gap-4">
           <div className="flex gap-2 flex-1">
             <div className="relative flex-1">
@@ -275,8 +276,8 @@ export default function RecettesPage() {
         </div>
       </div>
 
-      {/* Spacer for fixed search bar on mobile */}
-      <div className="h-[100px] md:hidden" />
+      {/* Spacer for fixed search bar on mobile - exact height of search bar */}
+      <div className="h-[108px] md:hidden" />
 
       {isLoading ? (
         <div className="text-center py-12">Chargement...</div>
@@ -349,6 +350,6 @@ export default function RecettesPage() {
         onCancelEdit={cancelEdit}
         isSaving={isSaving}
       />
-    </div>
+    </>
   );
 }

@@ -43,7 +43,10 @@ export function AddRecipeDialog({
 }: AddRecipeDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] md:max-w-4xl max-h-[90vh] md:max-h-[85vh] overflow-hidden flex flex-col">
+      <DialogContent
+        className="max-w-[95vw] md:max-w-4xl max-h-[90vh] md:max-h-[85vh] overflow-hidden flex flex-col"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle>Choisir une recette</DialogTitle>
         </DialogHeader>

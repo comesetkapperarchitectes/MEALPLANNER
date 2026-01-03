@@ -28,7 +28,7 @@ export default function RootLayout({
           <MobileHeader />
 
           {/* Main content */}
-          <main className="flex-1 overflow-auto p-4 md:p-6 pt-14 pb-20 md:pt-6 md:pb-6">
+          <main className="flex-1 overflow-auto pt-14 pb-20 px-4 md:pt-6 md:pb-6 md:px-6">
             {children}
           </main>
 
