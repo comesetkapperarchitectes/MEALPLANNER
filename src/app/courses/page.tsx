@@ -96,7 +96,7 @@ export default function CoursesPage() {
           shoppingItems.push({
             ingredient_id: ingredientId,
             ingredient_name: info.name,
-            quantity_needed: Math.round(toBuy * 10) / 10, // Round to 1 decimal
+            quantity_needed: Math.ceil(toBuy), // Always round up
             unit_display: info.unit_display,
             category: info.category,
             checked: false,
@@ -202,7 +202,7 @@ export default function CoursesPage() {
     return (
       <div
         key={item.ingredient_id}
-        className={`flex items-center gap-3 p-2 rounded-lg hover:bg-accent/50 cursor-pointer ${
+        className={`flex items-center gap-2 md:gap-3 p-1.5 md:p-2 rounded-lg hover:bg-accent/50 cursor-pointer ${
           isChecked ? "opacity-60" : ""
         }`}
         onClick={() => toggleItem(item.ingredient_id)}
@@ -210,13 +210,14 @@ export default function CoursesPage() {
         <Checkbox
           checked={isChecked}
           onCheckedChange={() => toggleItem(item.ingredient_id)}
+          className="h-4 w-4 md:h-5 md:w-5"
         />
-        <div className="flex-1 flex items-center justify-between gap-2 min-w-0">
-          <span className={`${isChecked ? "line-through" : ""}`}>
+        <div className="flex-1 flex items-center justify-between gap-1 md:gap-2 min-w-0">
+          <span className={`text-xs md:text-base ${isChecked ? "line-through" : ""}`}>
             {item.quantity_needed} {['pièce', 'pièces', 'piece'].includes(item.unit_display?.toLowerCase() || '') ? '' : item.unit_display} {item.ingredient_name}
           </span>
           {item.recipes.length > 0 && (
-            <span className="text-xs text-muted-foreground truncate max-w-[50%]">
+            <span className="text-[10px] md:text-xs text-muted-foreground truncate max-w-[40%] md:max-w-[50%]">
               ({formatRecipes(item.recipes)})
             </span>
           )}
@@ -226,15 +227,15 @@ export default function CoursesPage() {
   };
 
   return (
-    <div className="space-y-4 md:space-y-6">
+    <div className="space-y-3 md:space-y-6">
       {/* Header - responsive */}
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <h1 className="hidden md:block text-3xl font-bold">Courses</h1>
-        <div className="flex items-center gap-1 md:gap-2">
+        <div className="flex items-center justify-between md:justify-start md:gap-2 -mx-4 px-4 md:mx-0 md:px-0 py-2 md:py-0 bg-muted/50 md:bg-transparent">
           <Button variant="outline" size="icon" className="h-8 w-8 md:h-10 md:w-10" onClick={() => navigateWeek(-1)}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <span className="font-medium text-sm md:text-base min-w-[120px] md:min-w-[200px] text-center">
+          <span className="font-medium text-sm md:text-base text-center">
             <span className="hidden md:inline">Semaine du </span>
             {formatDisplayDate(formatDate(weekStart))}
           </span>
@@ -245,8 +246,8 @@ export default function CoursesPage() {
       </div>
 
       {checkedCount > 0 && (
-        <Button onClick={addToStock} size="sm" className="md:size-default w-full md:w-auto">
-          <ShoppingCart className="h-4 w-4 mr-2" />
+        <Button onClick={addToStock} size="sm" className="w-full md:w-auto text-xs md:text-sm">
+          <ShoppingCart className="h-3 w-3 md:h-4 md:w-4 mr-1.5 md:mr-2" />
           Ajouter {checkedCount} article{checkedCount > 1 ? "s" : ""} au stock
         </Button>
       )}
@@ -254,40 +255,40 @@ export default function CoursesPage() {
       {isLoading ? (
         <div className="text-center py-12">Chargement...</div>
       ) : items.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Check className="h-12 w-12 text-primary mx-auto mb-4" />
-            <p className="text-lg font-medium">Rien à acheter !</p>
-            <p className="text-sm text-muted-foreground mt-2">
+        <Card className="-mx-4 md:mx-0 rounded-none md:rounded-lg border-x-0 md:border-x">
+          <CardContent className="py-8 md:py-12 text-center">
+            <Check className="h-10 w-10 md:h-12 md:w-12 text-primary mx-auto mb-3 md:mb-4" />
+            <p className="text-base md:text-lg font-medium">Rien à acheter !</p>
+            <p className="text-xs md:text-sm text-muted-foreground mt-2">
               Soit vous avez tout en stock, soit aucun repas n&apos;est planifié cette semaine
             </p>
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-2 md:space-y-4">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">
+            <span className="text-xs md:text-sm text-muted-foreground">
               {checkedCount} / {totalCount} articles cochés
             </span>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="-mx-4 md:mx-0 space-y-2 md:space-y-0 md:grid md:gap-4 md:grid-cols-2">
             {groupedItems.map((group) => (
-              <Card key={group.value}>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg">{group.label}</CardTitle>
+              <Card key={group.value} className="rounded-none md:rounded-lg border-x-0 md:border-x">
+                <CardHeader className="py-2 px-3 md:px-6 md:pb-2">
+                  <CardTitle className="text-sm md:text-lg">{group.label}</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-1">
+                <CardContent className="px-3 md:px-6 pb-2 md:pb-6 space-y-0.5 md:space-y-1">
                   {group.items.map(renderItem)}
                 </CardContent>
               </Card>
             ))}
             {uncategorizedItems.length > 0 && (
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg">Autres</CardTitle>
+              <Card className="rounded-none md:rounded-lg border-x-0 md:border-x">
+                <CardHeader className="py-2 px-3 md:px-6 md:pb-2">
+                  <CardTitle className="text-sm md:text-lg">Autres</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-1">
+                <CardContent className="px-3 md:px-6 pb-2 md:pb-6 space-y-0.5 md:space-y-1">
                   {uncategorizedItems.map(renderItem)}
                 </CardContent>
               </Card>
