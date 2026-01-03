@@ -2,7 +2,6 @@
 
 import { Search } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   Dialog,
@@ -17,8 +16,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { CategoryBadge } from "@/components/common";
 import { RECIPE_CATEGORIES } from "@/lib/constants";
-import type { Recipe, Category } from "@/types";
+import type { Recipe } from "@/types";
 
 interface AddRecipeDialogProps {
   open: boolean;
@@ -29,7 +29,6 @@ interface AddRecipeDialogProps {
   categoryFilter: string;
   onCategoryFilterChange: (value: string) => void;
   onSelectRecipe: (recipe: Recipe) => void;
-  getCategoryBadge: (category: Category) => string;
 }
 
 export function AddRecipeDialog({
@@ -41,7 +40,6 @@ export function AddRecipeDialog({
   categoryFilter,
   onCategoryFilterChange,
   onSelectRecipe,
-  getCategoryBadge,
 }: AddRecipeDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -93,7 +91,7 @@ export function AddRecipeDialog({
                   <div className="flex h-28">
                     <div className="flex-1 min-w-0 flex flex-col p-3">
                       <h3 className="font-medium text-sm line-clamp-2">{recipe.name}</h3>
-                      <Badge className="w-fit mt-1 text-xs">{getCategoryBadge(recipe.category)}</Badge>
+                      <CategoryBadge category={recipe.category} className="w-fit mt-1 text-xs" />
                       {(recipe.prep_time || recipe.cook_time) && (
                         <p className="text-xs text-muted-foreground mt-1">
                           {recipe.prep_time && `${recipe.prep_time}min`}

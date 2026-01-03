@@ -17,7 +17,6 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -34,8 +33,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { CategoryBadge, IngredientLine, LoadingSpinner } from "@/components/common";
 import { RECIPE_CATEGORIES } from "@/lib/constants";
-import { formatUnitDisplay } from "@/lib/utils/unitUtils";
 import { SortableIngredient, EditIngredient } from "./SortableIngredient";
 import type { Recipe, Category } from "@/types";
 
@@ -49,7 +48,6 @@ interface RecipeDetailDialogProps {
   onDelete: () => void;
   onImageUpload: () => void;
   uploadingImage: boolean;
-  getCategoryLabel: (cat: Category) => string;
   // Edit mode props
   editName: string;
   setEditName: (value: string) => void;
@@ -79,7 +77,6 @@ export function RecipeDetailDialog({
   onDelete,
   onImageUpload,
   uploadingImage,
-  getCategoryLabel,
   editName,
   setEditName,
   editCategory,
@@ -138,7 +135,7 @@ export function RecipeDetailDialog({
             <div className="flex gap-4">
               <div className="flex-1 flex flex-col gap-3">
                 <h2 className="text-xl font-bold">{recipe.name}</h2>
-                <Badge className="w-fit">{getCategoryLabel(recipe.category)}</Badge>
+                <CategoryBadge category={recipe.category} className="w-fit" />
                 <div className="text-sm text-muted-foreground space-y-1">
                   <p>{recipe.base_servings} personnes</p>
                   {recipe.prep_time && <p>Préparation: {recipe.prep_time} min</p>}
@@ -156,22 +153,16 @@ export function RecipeDetailDialog({
               <div>
                 <Label className="text-muted-foreground">Ingrédients</Label>
                 <ul className="mt-2 space-y-1">
-                  {recipe.ingredients.map((ing, idx) => {
-                    const { displayUnit, showNormalized } = formatUnitDisplay(
-                      ing.unit_display || ing.unit_normalized || '',
-                      ing.unit_normalized
-                    );
-                    return (
-                      <li key={idx} className="text-sm flex items-center justify-between">
-                        <span>• {ing.quantity} {displayUnit} {ing.ingredient_name}</span>
-                        {showNormalized && (
-                          <span className="text-xs text-muted-foreground">
-                            {ing.quantity_normalized}{ing.unit_normalized}
-                          </span>
-                        )}
-                      </li>
-                    );
-                  })}
+                  {recipe.ingredients.map((ing, idx) => (
+                    <IngredientLine
+                      key={idx}
+                      ingredientName={ing.ingredient_name}
+                      quantity={ing.quantity}
+                      unitDisplay={ing.unit_display}
+                      quantityNormalized={ing.quantity_normalized}
+                      unitNormalized={ing.unit_normalized}
+                    />
+                  ))}
                 </ul>
               </div>
             )}
@@ -187,7 +178,7 @@ export function RecipeDetailDialog({
               <div className="flex gap-2">
                 <Button variant="outline" onClick={onImageUpload} disabled={uploadingImage}>
                   {uploadingImage ? (
-                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent mr-2" />
+                    <LoadingSpinner className="mr-2" />
                   ) : (
                     <ImagePlus className="h-4 w-4 mr-2" />
                   )}
@@ -289,7 +280,7 @@ export function RecipeDetailDialog({
               </Button>
               <Button onClick={onSave} disabled={isSaving}>
                 {isSaving ? (
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent mr-2" />
+                  <LoadingSpinner className="mr-2" />
                 ) : (
                   <Save className="h-4 w-4 mr-2" />
                 )}

@@ -9,8 +9,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { CategoryBadge } from "@/components/common";
 import { formatUnitDisplay } from "@/lib/utils/unitUtils";
-import type { Recipe, MealPlan, Category } from "@/types";
+import type { Recipe, MealPlan } from "@/types";
 
 interface RecipeSheetDialogProps {
   open: boolean;
@@ -18,7 +19,6 @@ interface RecipeSheetDialogProps {
   recipe: Recipe | null;
   meal: MealPlan | null;
   loading: boolean;
-  getCategoryBadge: (category: Category) => string;
 }
 
 export function RecipeSheetDialog({
@@ -27,7 +27,6 @@ export function RecipeSheetDialog({
   recipe,
   meal,
   loading,
-  getCategoryBadge,
 }: RecipeSheetDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -55,7 +54,7 @@ export function RecipeSheetDialog({
             <div>
               <h2 className="text-2xl font-bold">{recipe.name}</h2>
               <div className="flex flex-wrap items-center gap-2 mt-2">
-                <Badge>{getCategoryBadge(recipe.category)}</Badge>
+                <CategoryBadge category={recipe.category} />
                 <Badge variant="outline" className="text-base">
                   {meal.servings} personnes
                 </Badge>

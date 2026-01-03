@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Check } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { CategoryBadge } from "@/components/common";
 import * as api from "@/lib/api";
 import { MEAL_TYPES, DAYS } from "@/lib/constants";
 import { getMonday, formatDate } from "@/lib/utils/dateUtils";
@@ -185,17 +186,6 @@ export default function PlanningPage() {
     return date.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
   };
 
-  const getCategoryBadge = (category: Category) => {
-    const labels: Record<Category, string> = {
-      "petit-dejeuner": "P.déj",
-      "entree": "Entrée",
-      "plat": "Plat",
-      "dessert": "Dessert",
-      "gouter": "Goûter",
-    };
-    return labels[category] || category;
-  };
-
   const getFilteredRecipes = (mealType: MealType) => {
     let filtered = recipes;
     if (mealType === "petit-dejeuner") {
@@ -291,9 +281,10 @@ export default function PlanningPage() {
                             <div className="flex-1 p-1.5 min-w-0">
                               <p className="font-medium line-clamp-1">{meal.recipe?.name}</p>
                               <div className="flex items-center gap-1 mt-0.5">
-                                <Badge variant="outline" className="text-[10px] px-1 py-0">
-                                  {getCategoryBadge(meal.recipe?.category as Category)}
-                                </Badge>
+                                <CategoryBadge
+                                  category={meal.recipe?.category as Category}
+                                  className="text-[10px] px-1 py-0"
+                                />
                                 <span className="text-muted-foreground">{meal.servings}p</span>
                                 {meal.is_prepared && (
                                   <Badge variant="secondary" className="text-[10px] px-1 py-0 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
@@ -334,7 +325,6 @@ export default function PlanningPage() {
         onRemoveMeal={handleRemove}
         onMarkPrepared={handleMarkPrepared}
         onOpenRecipe={openRecipeDialog}
-        getCategoryBadge={getCategoryBadge}
         formatFullDate={formatFullDate}
       />
 
@@ -347,7 +337,6 @@ export default function PlanningPage() {
         categoryFilter={recipeCategoryFilter}
         onCategoryFilterChange={setRecipeCategoryFilter}
         onSelectRecipe={openServingsDialog}
-        getCategoryBadge={getCategoryBadge}
       />
 
       <ServingsDialog
@@ -357,7 +346,6 @@ export default function PlanningPage() {
         servings={servings}
         onServingsChange={setServings}
         onConfirm={handleConfirmServings}
-        getCategoryBadge={getCategoryBadge}
       />
 
       <EditServingsDialog
@@ -375,7 +363,6 @@ export default function PlanningPage() {
         recipe={recipeDetails}
         meal={selectedMealForRecipe}
         loading={loadingRecipe}
-        getCategoryBadge={getCategoryBadge}
       />
     </div>
   );

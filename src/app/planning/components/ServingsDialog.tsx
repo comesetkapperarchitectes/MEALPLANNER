@@ -1,7 +1,6 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -10,7 +9,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import type { Recipe, Category } from "@/types";
+import { CategoryBadge } from "@/components/common";
+import type { Recipe } from "@/types";
 
 interface ServingsDialogProps {
   open: boolean;
@@ -19,7 +19,6 @@ interface ServingsDialogProps {
   servings: string;
   onServingsChange: (value: string) => void;
   onConfirm: () => void;
-  getCategoryBadge: (category: Category) => string;
 }
 
 export function ServingsDialog({
@@ -29,7 +28,6 @@ export function ServingsDialog({
   servings,
   onServingsChange,
   onConfirm,
-  getCategoryBadge,
 }: ServingsDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -51,7 +49,7 @@ export function ServingsDialog({
               )}
               <div className="min-w-0">
                 <p className="font-medium line-clamp-2">{recipe.name}</p>
-                <Badge className="mt-1 text-xs">{getCategoryBadge(recipe.category)}</Badge>
+                <CategoryBadge category={recipe.category} className="mt-1 text-xs" />
               </div>
             </div>
             <div className="space-y-2">

@@ -4,8 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import { Plus, Search, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { CategoryBadge } from "@/components/common";
 import {
   Select,
   SelectContent,
@@ -194,10 +194,6 @@ export default function RecettesPage() {
     }
   };
 
-  const getCategoryLabel = (cat: Category) => {
-    return RECIPE_CATEGORIES.find((c) => c.value === cat)?.label || cat;
-  };
-
   return (
     <div className="space-y-6">
       <input
@@ -273,7 +269,7 @@ export default function RecettesPage() {
               <div className="flex h-44">
                 <div className="flex-1 min-w-0 flex flex-col gap-3 p-4">
                   <h3 className="font-semibold text-lg line-clamp-2">{recipe.name}</h3>
-                  <Badge className="w-fit">{getCategoryLabel(recipe.category)}</Badge>
+                  <CategoryBadge category={recipe.category} className="w-fit" />
                   {(recipe.prep_time || recipe.cook_time) && (
                     <p className="text-sm text-muted-foreground">
                       {recipe.prep_time && `Prépa: ${recipe.prep_time}min`}
@@ -311,7 +307,6 @@ export default function RecettesPage() {
         onDelete={() => selectedRecipe && handleDelete(selectedRecipe.id)}
         onImageUpload={() => selectedRecipe && handleImageButtonClick(selectedRecipe.id)}
         uploadingImage={uploadingImageId === selectedRecipe?.id}
-        getCategoryLabel={getCategoryLabel}
         editName={editName}
         setEditName={setEditName}
         editCategory={editCategory}

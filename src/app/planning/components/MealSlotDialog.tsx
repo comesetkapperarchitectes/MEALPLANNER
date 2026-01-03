@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { CategoryBadge } from "@/components/common";
 import { MEAL_TYPES } from "@/lib/constants";
 import type { MealPlan, MealType, Category } from "@/types";
 
@@ -22,7 +23,6 @@ interface MealSlotDialogProps {
   onRemoveMeal: (mealId: number) => void;
   onMarkPrepared: (mealId: number) => void;
   onOpenRecipe: (meal: MealPlan) => void;
-  getCategoryBadge: (category: Category) => string;
   formatFullDate: (dateStr: string) => string;
 }
 
@@ -36,7 +36,6 @@ export function MealSlotDialog({
   onRemoveMeal,
   onMarkPrepared,
   onOpenRecipe,
-  getCategoryBadge,
   formatFullDate,
 }: MealSlotDialogProps) {
   return (
@@ -81,9 +80,10 @@ export function MealSlotDialog({
                         {meal.recipe?.name}
                       </p>
                       <div className="flex items-center gap-2 mt-1">
-                        <Badge variant="outline" className="text-xs">
-                          {getCategoryBadge(meal.recipe?.category as Category)}
-                        </Badge>
+                        <CategoryBadge
+                          category={meal.recipe?.category as Category}
+                          className="text-xs"
+                        />
                         <span className="text-sm text-muted-foreground">
                           {meal.servings} personnes
                         </span>
