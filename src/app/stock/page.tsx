@@ -21,18 +21,9 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import * as api from "@/lib/api";
+import { INGREDIENT_CATEGORIES } from "@/lib/constants";
+import { isExpired, isExpiringSoon } from "@/lib/utils/dateUtils";
 import type { StockItem, Ingredient, IngredientCategory } from "@/types";
-
-const CATEGORIES: { value: IngredientCategory; label: string }[] = [
-  { value: "legume", label: "Légumes" },
-  { value: "fruit", label: "Fruits" },
-  { value: "viande", label: "Viandes" },
-  { value: "poisson", label: "Poissons" },
-  { value: "epicerie", label: "Épicerie" },
-  { value: "frais", label: "Frais" },
-  { value: "surgele", label: "Surgelés" },
-  { value: "condiment", label: "Condiments" },
-];
 
 export default function StockPage() {
   const [stock, setStock] = useState<StockItem[]>([]);
@@ -68,7 +59,7 @@ export default function StockPage() {
     item.ingredient_name.toLowerCase().includes(search.toLowerCase())
   );
 
-  const groupedStock = CATEGORIES.map((cat) => ({
+  const groupedStock = INGREDIENT_CATEGORIES.map((cat) => ({
     ...cat,
     items: filteredStock.filter((item) => item.category === cat.value),
   })).filter((group) => group.items.length > 0);
@@ -114,19 +105,6 @@ export default function StockPage() {
     } catch (error) {
       console.error("Error updating stock:", error);
     }
-  };
-
-  const isExpiringSoon = (date: string | null | undefined) => {
-    if (!date) return false;
-    const expiryDate = new Date(date);
-    const today = new Date();
-    const diffDays = Math.ceil((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-    return diffDays <= 3 && diffDays >= 0;
-  };
-
-  const isExpired = (date: string | null | undefined) => {
-    if (!date) return false;
-    return new Date(date) < new Date();
   };
 
   const renderStockItem = (item: StockItem) => (

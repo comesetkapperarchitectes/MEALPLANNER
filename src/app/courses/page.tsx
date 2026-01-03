@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import * as api from "@/lib/api";
+import { INGREDIENT_CATEGORIES } from "@/lib/constants";
+import { getMonday, formatDate } from "@/lib/utils/dateUtils";
 import type { IngredientCategory } from "@/types";
 
 interface ShoppingItem {
@@ -16,30 +18,6 @@ interface ShoppingItem {
   category: IngredientCategory | null;
   checked: boolean;
   recipes: string[];
-}
-
-const CATEGORIES: { value: IngredientCategory; label: string }[] = [
-  { value: "legume", label: "Légumes" },
-  { value: "fruit", label: "Fruits" },
-  { value: "viande", label: "Viandes" },
-  { value: "poisson", label: "Poissons" },
-  { value: "epicerie", label: "Épicerie" },
-  { value: "frais", label: "Frais" },
-  { value: "surgele", label: "Surgelés" },
-  { value: "condiment", label: "Condiments" },
-];
-
-function getMonday(date: Date): Date {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  d.setDate(diff);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
-function formatDate(date: Date): string {
-  return date.toISOString().split("T")[0];
 }
 
 // Store checked items in localStorage
@@ -203,7 +181,7 @@ export default function CoursesPage() {
     return date.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
   };
 
-  const groupedItems = CATEGORIES.map((cat) => ({
+  const groupedItems = INGREDIENT_CATEGORIES.map((cat) => ({
     ...cat,
     items: items.filter((item) => item.category === cat.value),
   })).filter((group) => group.items.length > 0);

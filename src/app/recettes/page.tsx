@@ -40,22 +40,8 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import * as api from "@/lib/api";
+import { RECIPE_CATEGORIES, SEASONS } from "@/lib/constants";
 import type { Recipe, Category, Season, RecipeImport } from "@/types";
-
-const CATEGORIES: { value: Category; label: string }[] = [
-  { value: "petit-dejeuner", label: "Petit-déjeuner" },
-  { value: "entree", label: "Entrée" },
-  { value: "plat", label: "Plat" },
-  { value: "dessert", label: "Dessert" },
-  { value: "gouter", label: "Goûter" },
-];
-
-const SEASONS: { value: Season; label: string }[] = [
-  { value: "printemps", label: "Printemps" },
-  { value: "ete", label: "Été" },
-  { value: "automne", label: "Automne" },
-  { value: "hiver", label: "Hiver" },
-];
 
 interface SortableIngredientProps {
   id: string;
@@ -326,7 +312,7 @@ export default function RecettesPage() {
   };
 
   const getCategoryLabel = (cat: Category) => {
-    return CATEGORIES.find((c) => c.value === cat)?.label || cat;
+    return RECIPE_CATEGORIES.find((c) => c.value === cat)?.label || cat;
   };
 
   const getSeasonLabel = (season: Season) => {
@@ -368,7 +354,7 @@ export default function RecettesPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Toutes catégories</SelectItem>
-            {CATEGORIES.map((cat) => (
+            {RECIPE_CATEGORIES.map((cat) => (
               <SelectItem key={cat.value} value={cat.value}>
                 {cat.label}
               </SelectItem>
@@ -586,7 +572,7 @@ export default function RecettesPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {CATEGORIES.map((cat) => (
+                        {RECIPE_CATEGORIES.map((cat) => (
                           <SelectItem key={cat.value} value={cat.value}>
                             {cat.label}
                           </SelectItem>

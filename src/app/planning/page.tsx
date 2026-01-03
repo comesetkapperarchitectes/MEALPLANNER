@@ -21,39 +21,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import * as api from "@/lib/api";
+import { MEAL_TYPES, DAYS, RECIPE_CATEGORIES } from "@/lib/constants";
+import { getMonday, formatDate } from "@/lib/utils/dateUtils";
 import type { MealPlan, Recipe, MealType, Settings, Category } from "@/types";
 
-const MEAL_TYPES: { type: MealType; label: string }[] = [
-  { type: "petit-dejeuner", label: "Petit-déjeuner" },
-  { type: "dejeuner", label: "Déjeuner" },
-  { type: "gouter", label: "Goûter" },
-  { type: "diner", label: "Dîner" },
-];
-
-const DAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
-
 const CATEGORY_ORDER: Category[] = ["entree", "plat", "dessert", "petit-dejeuner", "gouter"];
-
-const CATEGORIES: { value: Category; label: string }[] = [
-  { value: "petit-dejeuner", label: "Petit-déjeuner" },
-  { value: "entree", label: "Entrée" },
-  { value: "plat", label: "Plat" },
-  { value: "dessert", label: "Dessert" },
-  { value: "gouter", label: "Goûter" },
-];
-
-function getMonday(date: Date): Date {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  d.setDate(diff);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
-function formatDate(date: Date): string {
-  return date.toISOString().split("T")[0];
-}
 
 export default function PlanningPage() {
   const [weekStart, setWeekStart] = useState(() => getMonday(new Date()));
@@ -532,7 +504,7 @@ export default function PlanningPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Toutes catégories</SelectItem>
-                {CATEGORIES.map((cat) => (
+                {RECIPE_CATEGORIES.map((cat) => (
                   <SelectItem key={cat.value} value={cat.value}>
                     {cat.label}
                   </SelectItem>
