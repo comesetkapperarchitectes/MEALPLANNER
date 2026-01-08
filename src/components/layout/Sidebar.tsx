@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Calendar, BookOpen, Package, ShoppingCart, Settings, ChefHat } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { Calendar, BookOpen, Package, ShoppingCart, Settings, ChefHat, LogOut, User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/auth";
+import { Button } from "@/components/ui/button";
 
 const navigation = [
   { name: "Planning", href: "/planning", icon: Calendar },
@@ -15,6 +17,18 @@ const navigation = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+    router.push('/auth/login');
+  };
+
+  // Get display name from user metadata or email
+  const displayName = user?.user_metadata?.full_name ||
+                      user?.email?.split('@')[0] ||
+                      'Utilisateur';
 
   return (
     <aside className="hidden md:flex w-64 border-r bg-card flex-col">
@@ -44,6 +58,29 @@ export function Sidebar() {
           );
         })}
       </nav>
+
+      {/* User section */}
+      {user && (
+        <div className="p-4 border-t">
+          <div className="flex items-center gap-3 px-3 py-2 mb-2">
+            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+              <User className="h-4 w-4 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">{displayName}</p>
+              <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+            </div>
+          </div>
+          <Button
+            variant="ghost"
+            className="w-full justify-start gap-3 text-muted-foreground hover:text-destructive"
+            onClick={handleSignOut}
+          >
+            <LogOut className="h-5 w-5" />
+            Deconnexion
+          </Button>
+        </div>
+      )}
     </aside>
   );
 }

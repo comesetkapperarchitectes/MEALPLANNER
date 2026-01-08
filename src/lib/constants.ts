@@ -40,6 +40,27 @@ export const INGREDIENT_CATEGORIES: { value: IngredientCategory; label: string }
 // Jours de la semaine
 export const DAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
 
+// Unités d'affichage courantes
+export const DISPLAY_UNITS = [
+  "g",
+  "kg",
+  "ml",
+  "cl",
+  "l",
+  "cas",
+  "cac",
+  "pincée",
+  "gousse",
+  "tranche",
+  "feuille",
+  "botte",
+  "bouquet",
+  "boîte",
+  "sachet",
+  "verre",
+  "tasse",
+];
+
 // Labels pour lookup rapide
 export const CATEGORY_LABELS: Record<Category, string> = {
   "petit-dejeuner": "Petit-déjeuner",

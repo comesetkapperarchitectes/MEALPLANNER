@@ -1,9 +1,10 @@
 "use client";
 
-import { GripVertical } from "lucide-react";
+import { GripVertical, Trash2 } from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -26,9 +27,10 @@ interface SortableIngredientProps {
   ing: EditIngredient;
   index: number;
   updateIngredient: (index: number, field: string, value: string) => void;
+  onRemove?: (index: number) => void;
 }
 
-export function SortableIngredient({ id, ing, index, updateIngredient }: SortableIngredientProps) {
+export function SortableIngredient({ id, ing, index, updateIngredient, onRemove }: SortableIngredientProps) {
   const {
     attributes,
     listeners,
@@ -62,7 +64,7 @@ export function SortableIngredient({ id, ing, index, updateIngredient }: Sortabl
         value={ing.unit_display}
         onChange={(e) => updateIngredient(index, "unit_display", e.target.value)}
       />
-      <span className="flex-1">{ing.ingredient_name}</span>
+      <span className="flex-1 min-w-0 truncate">{ing.ingredient_name}</span>
       <Input
         className="w-20"
         value={ing.quantity_normalized}
@@ -79,9 +81,20 @@ export function SortableIngredient({ id, ing, index, updateIngredient }: Sortabl
         <SelectContent>
           <SelectItem value="g">g</SelectItem>
           <SelectItem value="ml">ml</SelectItem>
-          <SelectItem value="piece">pièce</SelectItem>
+          <SelectItem value="piece">piece</SelectItem>
         </SelectContent>
       </Select>
+      {onRemove && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+          onClick={() => onRemove(index)}
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      )}
     </div>
   );
 }

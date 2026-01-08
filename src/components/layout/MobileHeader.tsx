@@ -2,11 +2,26 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Menu, X, Settings, ChefHat } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Menu, X, Settings, ChefHat, LogOut, User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/lib/auth";
 
 export function MobileHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const router = useRouter();
+  const { user, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    setIsMenuOpen(false);
+    await signOut();
+    router.push('/auth/login');
+  };
+
+  // Get display name from user metadata or email
+  const displayName = user?.user_metadata?.full_name ||
+                      user?.email?.split('@')[0] ||
+                      'Utilisateur';
 
   return (
     <>
@@ -45,6 +60,21 @@ export function MobileHeader() {
           isMenuOpen ? "translate-x-0" : "translate-x-full"
         )}
       >
+        {/* User info */}
+        {user && (
+          <div className="p-4 border-b">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <User className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{displayName}</p>
+                <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <nav className="p-2">
           <Link
             href="/parametres"
@@ -52,8 +82,18 @@ export function MobileHeader() {
             className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
           >
             <Settings className="h-5 w-5" />
-            Paramètres
+            Parametres
           </Link>
+
+          {user && (
+            <button
+              onClick={handleSignOut}
+              className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-destructive transition-colors w-full"
+            >
+              <LogOut className="h-5 w-5" />
+              Deconnexion
+            </button>
+          )}
         </nav>
       </div>
     </>

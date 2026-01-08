@@ -1,4 +1,5 @@
 import { supabase } from '../supabase';
+import { getCurrentUserId } from './utils';
 import type { ShoppingList, ShoppingListItem, NormalizedUnit, IngredientCategory } from '@/types';
 import { getMealPlan } from './mealPlan';
 import { getRecipe } from './recipes';
@@ -6,6 +7,8 @@ import { getStock } from './stock';
 import { getIngredients } from './ingredients';
 
 export async function generateShoppingList(weekStart: string): Promise<number> {
+  const userId = await getCurrentUserId();
+
   // Get meal plan for the week
   const meals = await getMealPlan(weekStart);
 
@@ -94,7 +97,7 @@ export async function generateShoppingList(weekStart: string): Promise<number> {
   // Create new list
   const { data: newList, error } = await supabase
     .from('shopping_lists')
-    .insert({ week_start: weekStart, status: 'draft' })
+    .insert({ week_start: weekStart, status: 'draft', user_id: userId })
     .select('id')
     .single();
 
@@ -111,6 +114,7 @@ export async function generateShoppingList(weekStart: string): Promise<number> {
         quantity_normalized: item.quantity_normalized,
         unit_normalized: item.unit_normalized,
         checked: false,
+        user_id: userId,
       }))
     );
   }
@@ -172,6 +176,8 @@ export async function toggleShoppingItem(itemId: number): Promise<void> {
 }
 
 export async function completeShopping(listId: number): Promise<void> {
+  const userId = await getCurrentUserId();
+
   // Update list status
   await supabase
     .from('shopping_lists')
@@ -204,6 +210,7 @@ export async function completeShopping(listId: number): Promise<void> {
         unit_display: item.unit_display,
         quantity_normalized: item.quantity_normalized,
         unit_normalized: item.unit_normalized,
+        user_id: userId,
       });
     }
   }

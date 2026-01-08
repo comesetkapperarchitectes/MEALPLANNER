@@ -1,6 +1,6 @@
 "use client";
 
-import { ImagePlus, Pencil, Trash2, Save, X } from "lucide-react";
+import { ImagePlus, Pencil, Trash2, Save, X, Users } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -36,7 +36,9 @@ import {
 import { CategoryBadge, IngredientLine, LoadingSpinner } from "@/components/common";
 import { RECIPE_CATEGORIES } from "@/lib/constants";
 import { SortableIngredient, EditIngredient } from "./SortableIngredient";
-import type { Recipe, Category } from "@/types";
+import { VisibilitySelector, VisibilityBadge } from "./VisibilitySelector";
+import { IngredientAdder } from "./IngredientAdder";
+import type { Recipe, Category, RecipeVisibility } from "@/types";
 
 interface RecipeDetailDialogProps {
   open: boolean;
@@ -44,11 +46,13 @@ interface RecipeDetailDialogProps {
   recipe: Recipe | null;
   editMode: boolean;
   isCreating?: boolean;
+  isOwner?: boolean;
   // View mode props
   onStartEdit: () => void;
   onDelete: () => void;
   onImageUpload: () => void;
   uploadingImage: boolean;
+  onOpenShareDialog?: () => void;
   // Edit mode props
   editName: string;
   setEditName: (value: string) => void;
@@ -64,6 +68,8 @@ interface RecipeDetailDialogProps {
   setEditInstructions: (value: string) => void;
   editIngredients: EditIngredient[];
   setEditIngredients: React.Dispatch<React.SetStateAction<EditIngredient[]>>;
+  editVisibility: RecipeVisibility;
+  setEditVisibility: (value: RecipeVisibility) => void;
   onSave: () => void;
   onCancelEdit: () => void;
   isSaving: boolean;
@@ -75,10 +81,12 @@ export function RecipeDetailDialog({
   recipe,
   editMode,
   isCreating = false,
+  isOwner = false,
   onStartEdit,
   onDelete,
   onImageUpload,
   uploadingImage,
+  onOpenShareDialog,
   editName,
   setEditName,
   editCategory,
@@ -93,6 +101,8 @@ export function RecipeDetailDialog({
   setEditInstructions,
   editIngredients,
   setEditIngredients,
+  editVisibility,
+  setEditVisibility,
   onSave,
   onCancelEdit,
   isSaving,
@@ -122,6 +132,10 @@ export function RecipeDetailDialog({
     );
   };
 
+  const removeIngredient = (index: number) => {
+    setEditIngredients((prev) => prev.filter((_, i) => i !== index));
+  };
+
   return (
     <Dialog open={open} onOpenChange={(o) => {
       onOpenChange(o);
@@ -138,7 +152,10 @@ export function RecipeDetailDialog({
             <div className="flex flex-col-reverse gap-4 sm:flex-row">
               <div className="flex-1 flex flex-col gap-2 md:gap-3">
                 <h2 className="text-lg md:text-xl font-bold">{recipe.name}</h2>
-                <CategoryBadge category={recipe.category} className="w-fit" />
+                <div className="flex flex-wrap gap-2">
+                  <CategoryBadge category={recipe.category} className="w-fit" />
+                  <VisibilityBadge visibility={recipe.visibility} />
+                </div>
                 <div className="text-sm text-muted-foreground space-y-1">
                   <p>{recipe.base_servings} personnes</p>
                   {recipe.prep_time && <p>Préparation: {recipe.prep_time} min</p>}
@@ -177,26 +194,34 @@ export function RecipeDetailDialog({
               </div>
             )}
 
-            <div className="flex flex-col gap-2 pt-4 border-t sm:flex-row sm:justify-between">
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Button variant="outline" onClick={onImageUpload} disabled={uploadingImage} className="w-full sm:w-auto">
-                  {uploadingImage ? (
-                    <LoadingSpinner className="mr-2" />
-                  ) : (
-                    <ImagePlus className="h-4 w-4 mr-2" />
+            {isOwner && (
+              <div className="flex flex-col gap-2 pt-4 border-t sm:flex-row sm:justify-between">
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Button variant="outline" onClick={onImageUpload} disabled={uploadingImage} className="w-full sm:w-auto">
+                    {uploadingImage ? (
+                      <LoadingSpinner className="mr-2" />
+                    ) : (
+                      <ImagePlus className="h-4 w-4 mr-2" />
+                    )}
+                    {recipe.image_path ? "Changer l'image" : "Ajouter une image"}
+                  </Button>
+                  <Button variant="outline" onClick={onStartEdit} className="w-full sm:w-auto">
+                    <Pencil className="h-4 w-4 mr-2" />
+                    Modifier
+                  </Button>
+                  {recipe.visibility === "shared" && onOpenShareDialog && (
+                    <Button variant="outline" onClick={onOpenShareDialog} className="w-full sm:w-auto">
+                      <Users className="h-4 w-4 mr-2" />
+                      Partages
+                    </Button>
                   )}
-                  {recipe.image_path ? "Changer l'image" : "Ajouter une image"}
-                </Button>
-                <Button variant="outline" onClick={onStartEdit} className="w-full sm:w-auto">
-                  <Pencil className="h-4 w-4 mr-2" />
-                  Modifier
+                </div>
+                <Button variant="destructive" onClick={onDelete} className="w-full sm:w-auto">
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Supprimer
                 </Button>
               </div>
-              <Button variant="destructive" onClick={onDelete} className="w-full sm:w-auto">
-                <Trash2 className="h-4 w-4 mr-2" />
-                Supprimer
-              </Button>
-            </div>
+            )}
           </div>
         )}
 
@@ -209,21 +234,44 @@ export function RecipeDetailDialog({
                   <Label>Nom</Label>
                   <Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Nom de la recette" />
                 </div>
-                <div>
-                  <Label>Catégorie</Label>
-                  <Select value={editCategory} onValueChange={(v) => setEditCategory(v as Category)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {RECIPE_CATEGORIES.map((cat) => (
-                        <SelectItem key={cat.value} value={cat.value}>
-                          {cat.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label>Categorie</Label>
+                    <Select value={editCategory} onValueChange={(v) => setEditCategory(v as Category)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {RECIPE_CATEGORIES.map((cat) => (
+                          <SelectItem key={cat.value} value={cat.value}>
+                            {cat.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <VisibilitySelector
+                    value={editVisibility}
+                    onChange={setEditVisibility}
+                  />
                 </div>
+                {editVisibility === "shared" && (
+                  recipe && onOpenShareDialog ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={onOpenShareDialog}
+                      className="w-full"
+                    >
+                      <Users className="h-4 w-4 mr-2" />
+                      Gérer les partages
+                    </Button>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-2">
+                      Créez d'abord la recette pour gérer les partages
+                    </p>
+                  )
+                )}
                 <div className="grid grid-cols-3 gap-2">
                   <div>
                     <Label>Personnes</Label>
@@ -246,12 +294,23 @@ export function RecipeDetailDialog({
               )}
             </div>
 
-            {editIngredients.length > 0 && (
-              <div>
-                <Label className="text-muted-foreground">Ingrédients</Label>
+            <div>
+              <Label className="text-muted-foreground">Ingredients</Label>
+
+              {/* Ingredient Adder */}
+              <div className="mt-2">
+                <IngredientAdder
+                  onAdd={(newIng) => {
+                    setEditIngredients((prev) => [...prev, newIng]);
+                  }}
+                />
+              </div>
+
+              {/* Existing Ingredients List */}
+              {editIngredients.length > 0 && (
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                   <SortableContext items={editIngredients.map((_, i) => `ing-${i}`)} strategy={verticalListSortingStrategy}>
-                    <div className="mt-2 space-y-2">
+                    <div className="mt-3 space-y-2">
                       {editIngredients.map((ing, idx) => (
                         <SortableIngredient
                           key={`ing-${idx}`}
@@ -259,13 +318,14 @@ export function RecipeDetailDialog({
                           ing={ing}
                           index={idx}
                           updateIngredient={updateIngredient}
+                          onRemove={removeIngredient}
                         />
                       ))}
                     </div>
                   </SortableContext>
                 </DndContext>
-              </div>
-            )}
+              )}
+            </div>
 
             <div>
               <Label>Instructions</Label>

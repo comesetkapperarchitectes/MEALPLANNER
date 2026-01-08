@@ -14,11 +14,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import * as api from "@/lib/api";
+import { updateRecipeVisibility } from "@/lib/api/recipes";
 import { RECIPE_CATEGORIES, SEASONS } from "@/lib/constants";
-import { RecipeDetailDialog, EditIngredient } from "./components";
-import type { Recipe, Category, Season } from "@/types";
+import { RecipeDetailDialog, EditIngredient, ShareDialog } from "./components";
+import { useAuth } from "@/lib/auth";
+import type { Recipe, Category, Season, RecipeVisibility } from "@/types";
 
 export default function RecettesPage() {
+  const { user } = useAuth();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -33,6 +36,9 @@ export default function RecettesPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [pendingUploadRecipeId, setPendingUploadRecipeId] = useState<number | null>(null);
 
+  // Share dialog
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+
   // Edit mode
   const [editMode, setEditMode] = useState(false);
   const [editName, setEditName] = useState("");
@@ -42,7 +48,11 @@ export default function RecettesPage() {
   const [editCookTime, setEditCookTime] = useState("");
   const [editInstructions, setEditInstructions] = useState("");
   const [editIngredients, setEditIngredients] = useState<EditIngredient[]>([]);
+  const [editVisibility, setEditVisibility] = useState<RecipeVisibility>("private");
   const [isSaving, setIsSaving] = useState(false);
+
+  // Check if current user is the owner of the selected recipe
+  const isOwner = selectedRecipe?.user_id === user?.id || isCreating;
 
   const loadRecipes = async () => {
     setIsLoading(true);
@@ -75,6 +85,7 @@ export default function RecettesPage() {
     setEditCookTime("");
     setEditInstructions("");
     setEditIngredients([]);
+    setEditVisibility("private");
     setDetailDialogOpen(true);
   };
 
@@ -138,6 +149,7 @@ export default function RecettesPage() {
     setEditPrepTime(selectedRecipe.prep_time?.toString() || "");
     setEditCookTime(selectedRecipe.cook_time?.toString() || "");
     setEditInstructions(selectedRecipe.instructions || "");
+    setEditVisibility(selectedRecipe.visibility || "private");
     setEditIngredients(
       (selectedRecipe.ingredients || []).map((ing) => ({
         ingredient_id: ing.ingredient_id,
@@ -173,6 +185,7 @@ export default function RecettesPage() {
           instructions: editInstructions || null,
           seasons: [],
           tags: [],
+          visibility: editVisibility,
           ingredients: editIngredients.map((ing) => ({
             ingredient_id: ing.ingredient_id,
             quantity: parseFloat(ing.quantity) || 0,
@@ -206,6 +219,10 @@ export default function RecettesPage() {
             unit_normalized: ing.unit_normalized as "g" | "ml" | "piece",
           })),
         });
+        // Update visibility separately if changed
+        if (editVisibility !== selectedRecipe.visibility) {
+          await updateRecipeVisibility(selectedRecipe.id, editVisibility);
+        }
         const updated = await api.getRecipe(selectedRecipe.id);
         if (updated) setSelectedRecipe(updated);
         setEditMode(false);
@@ -328,10 +345,12 @@ export default function RecettesPage() {
         recipe={selectedRecipe}
         editMode={editMode}
         isCreating={isCreating}
+        isOwner={isOwner}
         onStartEdit={startEditMode}
         onDelete={() => selectedRecipe && handleDelete(selectedRecipe.id)}
         onImageUpload={() => selectedRecipe && handleImageButtonClick(selectedRecipe.id)}
         uploadingImage={uploadingImageId === selectedRecipe?.id}
+        onOpenShareDialog={() => setShareDialogOpen(true)}
         editName={editName}
         setEditName={setEditName}
         editCategory={editCategory}
@@ -346,10 +365,21 @@ export default function RecettesPage() {
         setEditInstructions={setEditInstructions}
         editIngredients={editIngredients}
         setEditIngredients={setEditIngredients}
+        editVisibility={editVisibility}
+        setEditVisibility={setEditVisibility}
         onSave={handleSaveEdit}
         onCancelEdit={cancelEdit}
         isSaving={isSaving}
       />
+
+      {selectedRecipe && (
+        <ShareDialog
+          open={shareDialogOpen}
+          onOpenChange={setShareDialogOpen}
+          recipeId={selectedRecipe.id}
+          recipeName={selectedRecipe.name}
+        />
+      )}
     </>
   );
 }

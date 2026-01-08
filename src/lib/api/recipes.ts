@@ -1,10 +1,13 @@
 import { supabase } from '../supabase';
+import { getCurrentUserId } from './utils';
 import type {
   Recipe,
   RecipeFilters,
   RecipeImport,
   RecipeCreateInput,
   RecipeUpdateInput,
+  RecipeShare,
+  RecipeVisibility,
   Category,
   Season,
   NormalizedUnit,
@@ -30,6 +33,7 @@ export async function getRecipes(filters?: RecipeFilters): Promise<Recipe[]> {
     ...r,
     category: r.category as Category,
     seasons: r.seasons as Season[],
+    visibility: (r.visibility as RecipeVisibility) || 'private',
   }));
 }
 
@@ -73,16 +77,18 @@ export async function getRecipe(id: number): Promise<Recipe | null> {
     ...recipe,
     category: recipe.category as Category,
     seasons: recipe.seasons as Season[],
+    visibility: (recipe.visibility as RecipeVisibility) || 'private',
     ingredients,
   };
 }
 
 export async function createRecipe(recipe: RecipeCreateInput): Promise<number> {
+  const userId = await getCurrentUserId();
   const { ingredients, ...recipeData } = recipe;
 
   const { data, error } = await supabase
     .from('recipes')
-    .insert(recipeData)
+    .insert({ ...recipeData, user_id: userId })
     .select('id')
     .single();
 
@@ -100,6 +106,7 @@ export async function createRecipe(recipe: RecipeCreateInput): Promise<number> {
           quantity_normalized: ing.quantity_normalized,
           unit_normalized: ing.unit_normalized,
           position: index,
+          user_id: userId,
         }))
       );
 
@@ -110,6 +117,7 @@ export async function createRecipe(recipe: RecipeCreateInput): Promise<number> {
 }
 
 export async function updateRecipe(id: number, recipe: RecipeUpdateInput): Promise<void> {
+  const userId = await getCurrentUserId();
   const { ingredients, ...recipeData } = recipe;
 
   if (Object.keys(recipeData).length > 0) {
@@ -138,6 +146,7 @@ export async function updateRecipe(id: number, recipe: RecipeUpdateInput): Promi
             quantity_normalized: ing.quantity_normalized,
             unit_normalized: ing.unit_normalized,
             position: index,
+            user_id: userId,
           }))
         );
 
@@ -290,4 +299,129 @@ export async function importRecipes(recipes: RecipeImport[]): Promise<number[]> 
   }
 
   return ids;
+}
+
+// ============ Recipe Sharing Functions ============
+
+export async function getRecipeShares(recipeId: number): Promise<RecipeShare[]> {
+  const { data, error } = await supabase
+    .from('recipe_shares')
+    .select(`
+      id,
+      recipe_id,
+      shared_with_user_id,
+      shared_by_user_id,
+      shared_at,
+      profiles!recipe_shares_shared_with_user_id_fkey (
+        id,
+        email,
+        display_name
+      )
+    `)
+    .eq('recipe_id', recipeId);
+
+  if (error) throw error;
+
+  return (data || []).map((share: Record<string, unknown>) => {
+    const profile = share.profiles as Record<string, unknown> | null;
+    return {
+      id: share.id as number,
+      recipe_id: share.recipe_id as number,
+      shared_with_user_id: share.shared_with_user_id as string,
+      shared_by_user_id: share.shared_by_user_id as string,
+      shared_at: share.shared_at as string,
+      shared_with_user: profile ? {
+        id: profile.id as string,
+        email: profile.email as string,
+        display_name: profile.display_name as string | null,
+      } : undefined,
+    };
+  });
+}
+
+export async function shareRecipe(recipeId: number, email: string): Promise<void> {
+  const userId = await getCurrentUserId();
+
+  // Find user by email in profiles
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('email', email)
+    .single();
+
+  if (profileError || !profile) {
+    throw new Error('Utilisateur non trouvé');
+  }
+
+  // Cannot share with yourself
+  if (profile.id === userId) {
+    throw new Error('Vous ne pouvez pas partager avec vous-même');
+  }
+
+  // Insert share
+  const { error } = await supabase
+    .from('recipe_shares')
+    .insert({
+      recipe_id: recipeId,
+      shared_with_user_id: profile.id,
+      shared_by_user_id: userId,
+    });
+
+  if (error) {
+    if (error.code === '23505') {
+      throw new Error('Recette déjà partagée avec cet utilisateur');
+    }
+    throw error;
+  }
+}
+
+export async function unshareRecipe(recipeId: number, sharedWithUserId: string): Promise<void> {
+  const { error } = await supabase
+    .from('recipe_shares')
+    .delete()
+    .eq('recipe_id', recipeId)
+    .eq('shared_with_user_id', sharedWithUserId);
+
+  if (error) throw error;
+}
+
+export async function updateRecipeVisibility(
+  recipeId: number,
+  visibility: RecipeVisibility
+): Promise<void> {
+  const { error } = await supabase
+    .from('recipes')
+    .update({ visibility })
+    .eq('id', recipeId);
+
+  if (error) throw error;
+
+  // If changing from 'shared' to something else, clear all shares
+  if (visibility !== 'shared') {
+    await supabase
+      .from('recipe_shares')
+      .delete()
+      .eq('recipe_id', recipeId);
+  }
+}
+
+export async function searchUsersByEmail(
+  email: string
+): Promise<{ id: string; email: string; display_name: string | null }[]> {
+  const userId = await getCurrentUserId();
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, email, display_name')
+    .ilike('email', `%${email}%`)
+    .neq('id', userId)
+    .limit(10);
+
+  if (error) throw error;
+
+  return (data || []).map((p) => ({
+    id: p.id as string,
+    email: p.email as string,
+    display_name: p.display_name as string | null,
+  }));
 }

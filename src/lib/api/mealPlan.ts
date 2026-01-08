@@ -1,4 +1,5 @@
 import { supabase } from '../supabase';
+import { getCurrentUserId } from './utils';
 import type { MealPlan, MealType, Category, Season, Recipe } from '@/types';
 import { getRecipe } from './recipes';
 
@@ -40,6 +41,8 @@ export async function addMealPlan(
   recipeId: number,
   servings: number
 ): Promise<number> {
+  const userId = await getCurrentUserId();
+
   // Check if date is in the past
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -54,6 +57,7 @@ export async function addMealPlan(
       recipe_id: recipeId,
       servings,
       is_prepared: false,
+      user_id: userId,
     })
     .select('id')
     .single();
@@ -72,6 +76,8 @@ export async function updateMealPlan(
   id: number,
   servings: number
 ): Promise<void> {
+  const userId = await getCurrentUserId();
+
   // Get the current meal plan
   const { data: meal } = await supabase
     .from('meal_plan')
@@ -110,6 +116,7 @@ export async function updateMealPlan(
             unit_display: ing.unit_display,
             quantity_normalized: quantityDiff,
             unit_normalized: ing.unit_normalized,
+            user_id: userId,
           });
         }
       }
@@ -125,6 +132,8 @@ export async function updateMealPlan(
 }
 
 export async function removeMealPlan(id: number): Promise<void> {
+  const userId = await getCurrentUserId();
+
   // Get the meal plan to check if it was prepared
   const { data: meal } = await supabase
     .from('meal_plan')
@@ -160,6 +169,7 @@ export async function removeMealPlan(id: number): Promise<void> {
             unit_display: ing.unit_display,
             quantity_normalized: quantityToRestore,
             unit_normalized: ing.unit_normalized,
+            user_id: userId,
           });
         }
       }

@@ -1,4 +1,5 @@
 import { supabase } from '../supabase';
+import { getCurrentUserId } from './utils';
 import type { Ingredient, IngredientCategory } from '@/types';
 
 export async function getIngredients(): Promise<Ingredient[]> {
@@ -18,9 +19,11 @@ export async function getIngredients(): Promise<Ingredient[]> {
 export async function createIngredient(
   ingredient: Omit<Ingredient, 'id'>
 ): Promise<number> {
+  const userId = await getCurrentUserId();
+
   const { data, error } = await supabase
     .from('ingredients')
-    .insert(ingredient)
+    .insert({ ...ingredient, user_id: userId })
     .select('id')
     .single();
 

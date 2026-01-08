@@ -4,6 +4,7 @@ export type Season = 'printemps' | 'ete' | 'automne' | 'hiver';
 export type IngredientCategory = 'legume' | 'fruit' | 'viande' | 'poisson' | 'epicerie' | 'frais' | 'surgele' | 'condiment';
 export type NormalizedUnit = 'g' | 'ml' | 'piece';
 export type ShoppingListStatus = 'draft' | 'validated' | 'purchased';
+export type RecipeVisibility = 'private' | 'public' | 'shared';
 
 export interface Settings {
   id: number;
@@ -24,6 +25,21 @@ export interface Recipe {
   tags: string[];
   instructions?: string | null;
   ingredients?: RecipeIngredient[];
+  user_id?: string | null;
+  visibility: RecipeVisibility;
+}
+
+export interface RecipeShare {
+  id: number;
+  recipe_id: number;
+  shared_with_user_id: string;
+  shared_by_user_id: string;
+  shared_at: string;
+  shared_with_user?: {
+    id: string;
+    email: string;
+    display_name: string | null;
+  };
 }
 
 export interface Ingredient {
@@ -122,10 +138,10 @@ export interface RecipeIngredientInput {
   unit_normalized: NormalizedUnit;
 }
 
-export type RecipeCreateInput = Omit<Recipe, 'id' | 'ingredients'> & {
+export type RecipeCreateInput = Omit<Recipe, 'id' | 'ingredients' | 'user_id'> & {
   ingredients?: RecipeIngredientInput[];
 };
 
-export type RecipeUpdateInput = Partial<Omit<Recipe, 'id' | 'ingredients'>> & {
+export type RecipeUpdateInput = Partial<Omit<Recipe, 'id' | 'ingredients' | 'user_id'>> & {
   ingredients?: RecipeIngredientInput[];
 };

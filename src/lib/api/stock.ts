@@ -1,4 +1,5 @@
 import { supabase } from '../supabase';
+import { getCurrentUserId } from './utils';
 import type { StockItem, NormalizedUnit, IngredientCategory } from '@/types';
 
 export async function getStock(): Promise<StockItem[]> {
@@ -33,6 +34,8 @@ export async function upsertStock(
   quantity: number,
   expiryDate?: string
 ): Promise<void> {
+  const userId = await getCurrentUserId();
+
   const { data: existing } = await supabase
     .from('stock')
     .select('id')
@@ -50,6 +53,7 @@ export async function upsertStock(
       ingredient_id: ingredientId,
       quantity,
       expiry_date: expiryDate || null,
+      user_id: userId,
     });
     if (error) throw error;
   }
