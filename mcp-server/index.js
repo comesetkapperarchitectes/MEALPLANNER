@@ -33,16 +33,31 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         description: `Importe une recette dans l'application meal-planner. Utilisez cet outil après avoir scanné/analysé une recette pour l'ajouter à la base de données.
 
 IMPORTANT pour les ingrédients:
-- unit_display: l'unité telle qu'affichée dans la recette originale (texte libre: "cl", "verre", "gousse", "pincée", etc.)
-- quantity_normalized: la quantité convertie en unité de base (g pour solides, ml pour liquides, nombre pour pièces)
-- unit_normalized: uniquement "g", "ml" ou "piece"
+- quantity: la quantité TOTALE dans l'unité choisie (après calcul si nécessaire)
+- unit_code: le code de l'unité (voir liste ci-dessous)
 
-Exemples de conversion:
-- 20 cl de crème → quantity=20, unit_display="cl", quantity_normalized=200, unit_normalized="ml"
-- 2 gousses d'ail → quantity=2, unit_display="gousses", quantity_normalized=2, unit_normalized="piece"
-- 1 kg de farine → quantity=1, unit_display="kg", quantity_normalized=1000, unit_normalized="g"
-- 1 pincée de sel → quantity=1, unit_display="pincée", quantity_normalized=1, unit_normalized="piece"
-- 2 cas d'huile → quantity=2, unit_display="cas", quantity_normalized=30, unit_normalized="ml" (1 cas ≈ 15ml)`,
+⚠️ CONVERSION DES CONTENANTS: Quand la recette mentionne des contenants (boîtes, pots, sachets avec contenance), TOUJOURS convertir en quantité totale:
+- "2 boîtes de 40cl de lait de coco" → quantity=80, unit_code="cl" (2×40=80)
+- "3 pots de 125g de yaourt" → quantity=375, unit_code="g" (3×125=375)
+- "1 sachet de 11g de levure" → quantity=11, unit_code="g"
+- "2 briques de 20cl de crème" → quantity=40, unit_code="cl" (2×20=40)
+- "1/2 boîte de 400g de tomates" → quantity=200, unit_code="g" (400÷2=200)
+
+La conversion en unité de base (g, ml, piece) est AUTOMATIQUE via la table units.
+
+Codes d'unités disponibles:
+- Masse: g, kg, pincee
+- Volume: ml, cl, l, cas (cuillère à soupe ≈15ml), cac (cuillère à café ≈5ml), verre (≈200ml), tasse (≈250ml)
+- Pièces: piece (pour comptables sans unité spéciale), gousse, tranche, feuille, botte, bouquet, sachet, brin, branche, tige, filet, cube, noix, grain, tete, plaque, poignee, grappe, boule, baton, trait
+
+Exemples simples:
+- 20 cl de crème → quantity=20, unit_code="cl"
+- 2 gousses d'ail → quantity=2, unit_code="gousse"
+- 1 kg de farine → quantity=1, unit_code="kg"
+- 1 pincée de sel → quantity=1, unit_code="pincee"
+- 2 cas d'huile → quantity=2, unit_code="cas"
+- 400g de poulet → quantity=400, unit_code="g"
+- 3 blancs de poulet → quantity=3, unit_code="piece"`,
         inputSchema: {
           type: "object",
           properties: {
@@ -70,6 +85,10 @@ Exemples de conversion:
             cook_time: {
               type: "number",
               description: "Temps de cuisson en minutes (optionnel)",
+            },
+            repos_time: {
+              type: "number",
+              description: "Temps de repos en minutes (optionnel, ex: levée de pâte, marinade)",
             },
             base_servings: {
               type: "number",
@@ -103,20 +122,11 @@ Exemples de conversion:
                   },
                   quantity: {
                     type: "number",
-                    description: "Quantité originale (pour affichage)",
+                    description: "Quantité dans l'unité spécifiée",
                   },
-                  unit_display: {
+                  unit_code: {
                     type: "string",
-                    description: "Unité originale pour affichage (texte libre: cl, kg, verre, gousse, pincée, cas, cac, etc.)",
-                  },
-                  quantity_normalized: {
-                    type: "number",
-                    description: "Quantité convertie en unité de base (g, ml ou nombre de pièces)",
-                  },
-                  unit_normalized: {
-                    type: "string",
-                    enum: ["g", "ml", "piece"],
-                    description: "Unité normalisée: g (grammes), ml (millilitres), piece (unités/pièces)",
+                    description: "Code de l'unité (g, kg, ml, cl, l, cas, cac, piece, gousse, etc.)",
                   },
                   category: {
                     type: "string",
@@ -124,9 +134,9 @@ Exemples de conversion:
                     description: "Catégorie de l'ingrédient (optionnel)",
                   },
                 },
-                required: ["name", "quantity", "unit_display", "quantity_normalized", "unit_normalized"],
+                required: ["name", "quantity", "unit_code"],
               },
-              description: "Liste des ingrédients avec quantités originales et normalisées",
+              description: "Liste des ingrédients avec quantités",
             },
           },
           required: ["name", "category"],
@@ -157,11 +167,44 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   if (name === "import_recipe") {
     try {
       const recipe = args;
-      const ingredientIds = [];
+      const ingredientData = [];
+
+      // Load all units for lookup
+      const { data: units, error: unitsError } = await supabase
+        .from("units")
+        .select("*");
+
+      if (unitsError) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Erreur chargement unités: ${unitsError.message}`,
+            },
+          ],
+        };
+      }
+
+      const unitsByCode = new Map(units.map((u) => [u.code.toLowerCase(), u]));
 
       // Create or get ingredients
       if (recipe.ingredients && Array.isArray(recipe.ingredients)) {
         for (const ing of recipe.ingredients) {
+          // Look up unit by code
+          const unitCode = (ing.unit_code || "piece").toLowerCase();
+          const unit = unitsByCode.get(unitCode);
+
+          if (!unit) {
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: `Unité inconnue "${ing.unit_code}" pour l'ingrédient "${ing.name}". Codes valides: ${[...unitsByCode.keys()].join(", ")}`,
+                },
+              ],
+            };
+          }
+
           // Check if ingredient exists
           let { data: existingIng } = await supabase
             .from("ingredients")
@@ -193,12 +236,16 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             existingIng = newIng;
           }
 
-          ingredientIds.push({
+          // Calculate normalized quantity automatically
+          const quantity = ing.quantity || 0;
+          const quantityNormalized = quantity * (unit.conversion_ratio || 1);
+
+          ingredientData.push({
             ingredient_id: existingIng.id,
-            quantity: ing.quantity || 0,
-            unit_display: ing.unit_display || "g",
-            quantity_normalized: ing.quantity_normalized || ing.quantity || 0,
-            unit_normalized: ing.unit_normalized || "g",
+            quantity: quantity,
+            unit_id: unit.id,
+            quantity_normalized: quantityNormalized,
+            unit_normalized: unit.base_unit,
           });
         }
       }
@@ -213,6 +260,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           image_path: null,
           prep_time: recipe.prep_time || null,
           cook_time: recipe.cook_time || null,
+          repos_time: recipe.repos_time || null,
           base_servings: recipe.base_servings || 4,
           category: recipe.category,
           seasons: recipe.seasons || [],
@@ -234,15 +282,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       // Link ingredients to recipe
-      if (ingredientIds.length > 0) {
+      if (ingredientData.length > 0) {
         const { error: linkError } = await supabase
           .from("recipe_ingredients")
           .insert(
-            ingredientIds.map((ing) => ({
+            ingredientData.map((ing) => ({
               recipe_id: newRecipe.id,
               ingredient_id: ing.ingredient_id,
               quantity: ing.quantity,
-              unit_display: ing.unit_display,
+              unit_id: ing.unit_id,
               quantity_normalized: ing.quantity_normalized,
               unit_normalized: ing.unit_normalized,
             }))
@@ -264,7 +312,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         content: [
           {
             type: "text",
-            text: `✅ Recette "${newRecipe.name}" importée avec succès!\nID: ${newRecipe.id}\nIngrédients: ${ingredientIds.length}`,
+            text: `✅ Recette "${newRecipe.name}" importée avec succès!\nID: ${newRecipe.id}\nIngrédients: ${ingredientData.length}`,
           },
         ],
       };

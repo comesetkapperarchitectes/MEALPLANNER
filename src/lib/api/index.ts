@@ -5,3 +5,4 @@ export * from './ingredients';
 export * from './stock';
 export * from './mealPlan';
 export * from './shopping';
+export * from './units';

@@ -40,15 +40,19 @@ mcp-server/
 - `stock`: Stock d'ingrédients
 - `shopping_lists` / `shopping_list_items`: Listes de courses
 
-### Système d'unités (dual-unit)
-Chaque ingrédient dans une recette a deux représentations:
-- **unit_display**: Texte libre pour affichage (cl, gousse, boîte de 40cl, cas, cac, pincée...)
-- **quantity_normalized** + **unit_normalized**: Valeur convertie en unité de base (g, ml, piece)
+### Système d'unités
+Les unités sont centralisées dans la table `units` avec:
+- **code**: Code court (g, kg, ml, cl, l, cas, cac, piece, gousse, etc.)
+- **family**: Famille (mass, volume, piece)
+- **base_unit**: Unité de base (g, ml, piece)
+- **conversion_ratio**: Ratio de conversion vers l'unité de base
+- **translations**: JSONB pour i18n (fr: {singular, plural, abbr})
 
-Exemples:
-- `2 boîtes de 40 cl` → unit_display="boîtes de 40 cl", quantity_normalized=800, unit_normalized="ml"
-- `5 gousses d'ail` → unit_display="gousses", quantity_normalized=5, unit_normalized="piece"
-- `2 cas d'huile` → unit_display="cas", quantity_normalized=30, unit_normalized="ml"
+La conversion est automatique via `conversion_ratio`:
+- `20 cl de crème` → quantity=20, unit_id référence "cl" → quantity_normalized = 20 * 10 = 200ml
+- `2 gousses d'ail` → quantity=2, unit_id référence "gousse" → quantity_normalized = 2 pieces
+- `1 kg de farine` → quantity=1, unit_id référence "kg" → quantity_normalized = 1000g
+- `2 cas d'huile` → quantity=2, unit_id référence "cas" → quantity_normalized = 30ml
 
 ### Catégories
 - **Recettes**: petit-dejeuner, entree, plat, dessert, gouter
@@ -58,7 +62,7 @@ Exemples:
 
 ## Règles d'affichage des unités
 - Ne PAS afficher "pièce", "pièces", "piece" (ex: "6 Blancs de poulet" pas "6 pièces Blancs de poulet")
-- Afficher la quantité normalisée à droite en gris quand pertinent (ex: "2 boîtes de 40 cl Lait de coco    800ml")
+- Utiliser les abréviations françaises depuis `unit.translations.fr.abbr`
 
 ## Gestion du stock
 - Le stock se décrémente quand un repas est marqué "préparé"

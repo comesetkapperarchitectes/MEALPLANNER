@@ -1,51 +1,77 @@
-import type { NormalizedUnit } from '@/types';
+import type { Unit } from '@/types';
 
 /**
- * Utilitaires pour la gestion des unités
+ * Utilitaires pour la gestion des unites
  */
 
-// Unités à masquer à l'affichage
-const HIDDEN_UNITS = ['pièce', 'pièces', 'piece', 'pieces'];
+const HIDDEN_UNIT_CODES = ['piece'];
 
 /**
- * Formate l'unité d'affichage et détermine si l'unité normalisée doit être montrée
+ * Formate l'unite pour affichage
  */
-export function formatUnitDisplay(
-  unitDisplay: string | null | undefined,
-  unitNormalized: NormalizedUnit | string | null | undefined
-): { displayUnit: string; showNormalized: boolean } {
-  const rawUnit = unitDisplay || '';
-  const displayUnit = HIDDEN_UNITS.includes(rawUnit.toLowerCase()) ? '' : rawUnit;
-  const showNormalized = unitNormalized !== 'piece' &&
-    displayUnit !== unitNormalized &&
-    displayUnit !== '';
-
-  return { displayUnit, showNormalized };
-}
-
-/**
- * Formate une quantité avec son unité pour affichage
- */
-export function formatQuantityWithUnit(
+export function formatUnit(
+  unit: Unit | null | undefined,
   quantity: number,
-  unitDisplay: string | null | undefined,
-  quantityNormalized?: number,
-  unitNormalized?: NormalizedUnit | string | null
-): { main: string; normalized: string | null } {
-  const { displayUnit, showNormalized } = formatUnitDisplay(unitDisplay, unitNormalized);
+  locale: string = 'fr'
+): string {
+  if (!unit || HIDDEN_UNIT_CODES.includes(unit.code)) {
+    return '';
+  }
 
-  const main = displayUnit ? `${quantity} ${displayUnit}` : `${quantity}`;
-  const normalized = showNormalized && quantityNormalized && unitNormalized
-    ? `${quantityNormalized}${unitNormalized}`
-    : null;
+  const translation = unit.translations[locale];
+  if (!translation) {
+    return unit.code;
+  }
 
-  return { main, normalized };
+  // Si l'abbr est differente du singulier (ex: g, kg, ml, cas), utiliser l'abbr (invariable)
+  // Sinon utiliser singulier/pluriel selon la quantite
+  if (translation.abbr && translation.abbr !== translation.singular) {
+    return translation.abbr;
+  }
+
+  return quantity > 1 ? translation.plural : translation.singular;
 }
 
 /**
- * Vérifie si une unité est une unité "pièce" (à ne pas afficher)
+ * Formate une quantite avec son unite
  */
-export function isPieceUnit(unit: string | null | undefined): boolean {
-  if (!unit) return true;
-  return HIDDEN_UNITS.includes(unit.toLowerCase());
+export function formatQuantityUnit(
+  quantity: number,
+  unit: Unit | null | undefined,
+  locale: string = 'fr'
+): string {
+  const unitStr = formatUnit(unit, quantity, locale);
+  return unitStr ? `${quantity} ${unitStr}` : `${quantity}`;
+}
+
+/**
+ * Verifie si l'unite est de type "piece" (non affichable)
+ */
+export function isHiddenUnit(unit: Unit | null | undefined): boolean {
+  return !unit || HIDDEN_UNIT_CODES.includes(unit.code) || !unit.is_displayable;
+}
+
+/**
+ * Retourne l'article a utiliser entre l'unite et l'ingredient
+ * Ex: "de" pour "botte de persil", "d'" pour "gousse d'ail"
+ * En anglais, pas d'article: "bunch of parsley" -> "bunch parsley" n'est pas correct
+ * mais "1 bunch parsley" est acceptable, ou on utilise "of"
+ */
+export function getArticle(
+  unit: Unit | null | undefined,
+  ingredientName: string,
+  locale: string = 'fr'
+): string {
+  if (!unit || !unit.needs_article) {
+    return '';
+  }
+
+  // En anglais, utiliser "of "
+  if (locale === 'en') {
+    return 'of ';
+  }
+
+  // En français, voyelles et h muet pour l'elision
+  const startsWithVowel = /^[aeiouhàâäéèêëïîôùûüœæ]/i.test(ingredientName);
+  return startsWithVowel ? "d'" : 'de ';
 }

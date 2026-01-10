@@ -1,7 +1,7 @@
 'use client';
 
 import { ReactNode } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname } from '@/i18n/navigation';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { MobileHeader } from '@/components/layout/MobileHeader';
@@ -14,6 +14,7 @@ export function AppShell({ children }: AppShellProps) {
   const pathname = usePathname();
 
   // Don't show navigation on auth pages
+  // pathname from next-intl is already without the locale prefix
   const isAuthPage = pathname?.startsWith('/auth');
 
   if (isAuthPage) {

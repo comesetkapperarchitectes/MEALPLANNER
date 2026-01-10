@@ -37,29 +37,12 @@ export const INGREDIENT_CATEGORIES: { value: IngredientCategory; label: string }
   { value: "condiment", label: "Condiments" },
 ];
 
-// Jours de la semaine
-export const DAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
+// Jours de la semaine (clés de traduction)
+export const DAY_KEYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] as const;
+export const DAY_ABBR_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
 
-// Unités d'affichage courantes
-export const DISPLAY_UNITS = [
-  "g",
-  "kg",
-  "ml",
-  "cl",
-  "l",
-  "cas",
-  "cac",
-  "pincée",
-  "gousse",
-  "tranche",
-  "feuille",
-  "botte",
-  "bouquet",
-  "boîte",
-  "sachet",
-  "verre",
-  "tasse",
-];
+// Jours de la semaine (deprecated - utiliser DAY_KEYS avec traductions)
+export const DAYS = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
 
 // Labels pour lookup rapide
 export const CATEGORY_LABELS: Record<Category, string> = {

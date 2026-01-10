@@ -1,6 +1,7 @@
 import { supabase } from '../supabase';
 import { getCurrentUserId } from './utils';
-import type { ShoppingList, ShoppingListItem, NormalizedUnit, IngredientCategory } from '@/types';
+import { getUnits } from './units';
+import type { ShoppingList, ShoppingListItem, IngredientCategory, Unit, UnitFamily, BaseUnit } from '@/types';
 import { getMealPlan } from './mealPlan';
 import { getRecipe } from './recipes';
 import { getStock } from './stock';
@@ -14,19 +15,24 @@ export async function generateShoppingList(weekStart: string): Promise<number> {
 
   // Get current stock
   const stock = await getStock();
-  // Map by ingredient_id and unit_normalized for proper aggregation
+  // Map by ingredient_id and base_unit for proper aggregation
   const stockMap = new Map<string, number>();
   for (const s of stock) {
-    const key = `${s.ingredient_id}-${s.unit_normalized}`;
+    const baseUnit = s.unit?.base_unit || 'piece';
+    const key = `${s.ingredient_id}-${baseUnit}`;
     stockMap.set(key, (stockMap.get(key) || 0) + s.quantity_normalized);
   }
 
-  // Calculate needed ingredients (aggregated by ingredient_id and unit_normalized)
+  // Charger les unites
+  const units = await getUnits();
+  const unitsMap = new Map(units.map((u) => [u.id, u]));
+
+  // Calculate needed ingredients (aggregated by ingredient_id and base_unit)
   const neededIngredients = new Map<string, {
     ingredient_id: number;
     quantity_normalized: number;
-    unit_normalized: NormalizedUnit;
-    unit_display: string;
+    unit_id: number;
+    unit: Unit | undefined;
   }>();
 
   for (const meal of meals) {
@@ -36,7 +42,9 @@ export async function generateShoppingList(weekStart: string): Promise<number> {
       if (recipe?.ingredients) {
         const ratio = meal.servings / recipe.base_servings;
         for (const ing of recipe.ingredients) {
-          const key = `${ing.ingredient_id}-${ing.unit_normalized}`;
+          const unit = ing.unit || unitsMap.get(ing.unit_id);
+          const baseUnit = unit?.base_unit || 'piece';
+          const key = `${ing.ingredient_id}-${baseUnit}`;
           const existing = neededIngredients.get(key);
           if (existing) {
             existing.quantity_normalized += ing.quantity_normalized * ratio;
@@ -44,8 +52,8 @@ export async function generateShoppingList(weekStart: string): Promise<number> {
             neededIngredients.set(key, {
               ingredient_id: ing.ingredient_id,
               quantity_normalized: ing.quantity_normalized * ratio,
-              unit_normalized: ing.unit_normalized,
-              unit_display: ing.unit_display,
+              unit_id: ing.unit_id,
+              unit,
             });
           }
         }
@@ -60,9 +68,8 @@ export async function generateShoppingList(weekStart: string): Promise<number> {
   const toBuy: {
     ingredient_id: number;
     quantity_needed: number;
-    unit_display: string;
+    unit_id: number;
     quantity_normalized: number;
-    unit_normalized: NormalizedUnit;
   }[] = [];
 
   neededIngredients.forEach((needed, key) => {
@@ -75,9 +82,8 @@ export async function generateShoppingList(weekStart: string): Promise<number> {
       toBuy.push({
         ingredient_id: needed.ingredient_id,
         quantity_needed: toBuyQty,
-        unit_display: needed.unit_display,
+        unit_id: needed.unit_id,
         quantity_normalized: toBuyQty,
-        unit_normalized: needed.unit_normalized,
       });
     }
   });
@@ -110,9 +116,8 @@ export async function generateShoppingList(weekStart: string): Promise<number> {
         list_id: newList.id,
         ingredient_id: item.ingredient_id,
         quantity_needed: item.quantity_needed,
-        unit_display: item.unit_display,
+        unit_id: item.unit_id,
         quantity_normalized: item.quantity_normalized,
-        unit_normalized: item.unit_normalized,
         checked: false,
         user_id: userId,
       }))
@@ -135,20 +140,34 @@ export async function getShoppingList(weekStart: string): Promise<ShoppingList |
     .from('shopping_list_items')
     .select(`
       *,
-      ingredients (id, name, category)
+      ingredients (id, name, category),
+      units (*)
     `)
     .eq('list_id', list.id);
 
   const mappedItems: ShoppingListItem[] = (items || []).map((item: Record<string, unknown>) => {
     const ing = item.ingredients as Record<string, unknown>;
+    const unitData = item.units as Record<string, unknown> | null;
+    const unit: Unit | undefined = unitData ? {
+      id: unitData.id as number,
+      code: unitData.code as string,
+      family: unitData.family as UnitFamily,
+      base_unit: unitData.base_unit as BaseUnit,
+      conversion_ratio: Number(unitData.conversion_ratio),
+      translations: unitData.translations as Record<string, { singular: string; plural: string; abbr: string }>,
+      is_displayable: unitData.is_displayable as boolean,
+      display_order: unitData.display_order as number,
+      needs_article: unitData.needs_article as boolean,
+    } : undefined;
+
     return {
       id: item.id as number,
       ingredient_id: item.ingredient_id as number,
       ingredient_name: ing?.name as string || '',
       quantity_needed: item.quantity_needed as number,
-      unit_display: item.unit_display as string || 'g',
+      unit_id: item.unit_id as number,
+      unit,
       quantity_normalized: item.quantity_normalized as number,
-      unit_normalized: (item.unit_normalized as NormalizedUnit) || 'g',
       category: ing?.category as IngredientCategory | null,
       checked: item.checked as boolean,
     };
@@ -187,7 +206,7 @@ export async function completeShopping(listId: number): Promise<void> {
   // Add purchased items to stock
   const { data: items } = await supabase
     .from('shopping_list_items')
-    .select('ingredient_id, quantity_needed, unit_display, quantity_normalized, unit_normalized')
+    .select('ingredient_id, quantity_needed, unit_id, quantity_normalized')
     .eq('list_id', listId)
     .eq('checked', true);
 
@@ -207,9 +226,8 @@ export async function completeShopping(listId: number): Promise<void> {
       await supabase.from('stock').insert({
         ingredient_id: item.ingredient_id,
         quantity: item.quantity_needed,
-        unit_display: item.unit_display,
+        unit_id: item.unit_id,
         quantity_normalized: item.quantity_normalized,
-        unit_normalized: item.unit_normalized,
         user_id: userId,
       });
     }

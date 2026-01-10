@@ -1,9 +1,31 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import createIntlMiddleware from 'next-intl/middleware';
+import { routing } from './i18n/routing';
+
+const intlMiddleware = createIntlMiddleware(routing);
 
 export async function middleware(request: NextRequest) {
-  const response = NextResponse.next({
+  const { pathname } = request.nextUrl;
+
+  // Skip i18n for API and static assets
+  if (
+    pathname.startsWith('/api') ||
+    pathname.startsWith('/_next') ||
+    pathname.includes('.')
+  ) {
+    return NextResponse.next();
+  }
+
+  // Apply intl middleware first to handle locale routing
+  const intlResponse = intlMiddleware(request);
+
+  // Get the resolved pathname after intl processing
+  const pathnameWithoutLocale = pathname.replace(/^\/(fr|en)/, '') || '/';
+
+  // Create Supabase client for auth check
+  const response = intlResponse || NextResponse.next({
     request: {
       headers: request.headers,
     },
@@ -27,37 +49,40 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Use getUser() instead of getSession() to validate the session with the server
-  // getSession() can return stale data from storage
+  // Use getUser() to validate the session with the server
   const { data: { user }, error } = await supabase.auth.getUser();
   const isAuthenticated = !error && user !== null;
+
+  // Get the locale from the pathname (or default)
+  const localeMatch = pathname.match(/^\/(fr|en)/);
+  const locale = localeMatch ? localeMatch[1] : routing.defaultLocale;
 
   // Protected routes - redirect to login if not authenticated
   const protectedPaths = ['/planning', '/recettes', '/courses', '/stock', '/parametres'];
   const isProtectedPath = protectedPaths.some(path =>
-    request.nextUrl.pathname.startsWith(path)
+    pathnameWithoutLocale.startsWith(path)
   );
 
   if (isProtectedPath && !isAuthenticated) {
-    return NextResponse.redirect(new URL('/auth/login', request.url));
+    return NextResponse.redirect(new URL(`/${locale}/auth/login`, request.url));
   }
 
   // Auth routes - redirect to planning if already authenticated
   const authPaths = ['/auth/login', '/auth/signup'];
   const isAuthPath = authPaths.some(path =>
-    request.nextUrl.pathname.startsWith(path)
+    pathnameWithoutLocale.startsWith(path)
   );
 
   if (isAuthPath && isAuthenticated) {
-    return NextResponse.redirect(new URL('/planning', request.url));
+    return NextResponse.redirect(new URL(`/${locale}/planning`, request.url));
   }
 
-  // Root path - redirect based on auth status
-  if (request.nextUrl.pathname === '/') {
+  // Root path (with locale) - redirect based on auth status
+  if (pathnameWithoutLocale === '/' || pathnameWithoutLocale === '') {
     if (isAuthenticated) {
-      return NextResponse.redirect(new URL('/planning', request.url));
+      return NextResponse.redirect(new URL(`/${locale}/planning`, request.url));
     } else {
-      return NextResponse.redirect(new URL('/auth/login', request.url));
+      return NextResponse.redirect(new URL(`/${locale}/auth/login`, request.url));
     }
   }
 

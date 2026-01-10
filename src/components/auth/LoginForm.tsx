@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useLocale, useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +11,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Loader2 } from 'lucide-react';
 
 export function LoginForm() {
+  const locale = useLocale();
+  const t = useTranslations();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -27,16 +30,16 @@ export function LoginForm() {
 
       if (result.error) {
         setError(result.error.message === 'Invalid login credentials'
-          ? 'Email ou mot de passe incorrect'
+          ? t('auth.invalidCredentials')
           : result.error.message);
         setLoading(false);
       } else {
         // Force a hard navigation to ensure middleware runs
-        window.location.href = '/planning';
+        window.location.href = `/${locale}/planning`;
       }
     } catch (err) {
       console.error('Login error:', err);
-      setError('Une erreur est survenue lors de la connexion');
+      setError(t('auth.loginError'));
       setLoading(false);
     }
   };
@@ -44,19 +47,19 @@ export function LoginForm() {
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader className="text-center">
-        <CardTitle className="text-2xl">Connexion</CardTitle>
+        <CardTitle className="text-2xl">{t('auth.login')}</CardTitle>
         <CardDescription>
-          Connectez-vous pour acceder a votre planificateur de repas
+          {t('auth.loginDescription')}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{t('auth.email')}</Label>
             <Input
               id="email"
               type="email"
-              placeholder="vous@exemple.com"
+              placeholder={t('auth.emailPlaceholder')}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -65,11 +68,11 @@ export function LoginForm() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">Mot de passe</Label>
+            <Label htmlFor="password">{t('auth.password')}</Label>
             <Input
               id="password"
               type="password"
-              placeholder="Votre mot de passe"
+              placeholder={t('auth.passwordPlaceholder')}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -87,18 +90,18 @@ export function LoginForm() {
             {loading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Connexion...
+                {t('auth.loggingIn')}
               </>
             ) : (
-              'Se connecter'
+              t('auth.loginButton')
             )}
           </Button>
         </form>
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
-          Pas encore de compte ?{' '}
-          <Link href="/auth/signup" className="text-primary hover:underline">
-            Creer un compte
+          {t('auth.noAccount')}{' '}
+          <Link href={`/${locale}/auth/signup`} className="text-primary hover:underline">
+            {t('auth.createAccount')}
           </Link>
         </p>
       </CardContent>

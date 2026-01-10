@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Lobster } from "next/font/google";
 import "./globals.css";
-import { Providers } from "./providers";
-import { AppShell } from "@/components/layout/AppShell";
 
 const inter = Inter({ subsets: ["latin"] });
+const lobster = Lobster({
+  weight: "400",
+  subsets: ["latin"],
+  variable: "--font-logo"
+});
 
 export const metadata: Metadata = {
-  title: "MealPlanner",
+  title: "Cut",
   description: "Application de planification de repas",
 };
 
@@ -17,13 +20,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr">
-      <body className={inter.className}>
-        <Providers>
-          <AppShell>
-            {children}
-          </AppShell>
-        </Providers>
+    <html lang="fr" suppressHydrationWarning>
+      <body className={`${inter.className} ${lobster.variable}`}>
+        {children}
       </body>
     </html>
   );

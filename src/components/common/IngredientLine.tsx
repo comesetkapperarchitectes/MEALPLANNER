@@ -1,40 +1,46 @@
 "use client";
 
-import { formatUnitDisplay } from "@/lib/utils/unitUtils";
+import { useLocale } from "next-intl";
+import { Link } from "@/i18n/navigation";
+import { formatUnit, getArticle } from "@/lib/utils/unitUtils";
+import { getTranslatedName } from "@/lib/utils/translations";
+import type { Unit, Translations } from "@/types";
+import type { Locale } from "@/i18n/routing";
 
 interface IngredientLineProps {
+  ingredientId: number;
   ingredientName: string;
   quantity: number;
-  unitDisplay: string;
-  quantityNormalized: number;
-  unitNormalized: string;
+  unit?: Unit;
   className?: string;
+  translations?: Translations | null;
 }
 
 export function IngredientLine({
+  ingredientId,
   ingredientName,
   quantity,
-  unitDisplay,
-  quantityNormalized,
-  unitNormalized,
+  unit,
   className,
+  translations,
 }: IngredientLineProps) {
-  const { displayUnit, showNormalized } = formatUnitDisplay(
-    unitDisplay || unitNormalized || "",
-    unitNormalized
-  );
+  const locale = useLocale() as Locale;
+  const displayName = getTranslatedName(translations, ingredientName, locale);
+  const unitStr = formatUnit(unit, quantity, locale);
+  const article = getArticle(unit, displayName, locale);
 
   return (
     <li className={className ?? "text-sm flex items-center justify-between"}>
       <span>
-        • {quantity} {displayUnit} {ingredientName}
+        {unitStr ? `• ${quantity} ${unitStr} ${article}` : "• "}
+        <Link
+          href={`/recettes?ingredient=${ingredientId}`}
+          className="hover:underline hover:text-primary"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {unitStr ? displayName : `${quantity} ${displayName}`}
+        </Link>
       </span>
-      {showNormalized && (
-        <span className="text-xs text-muted-foreground">
-          {quantityNormalized}
-          {unitNormalized}
-        </span>
-      )}
     </li>
   );
 }

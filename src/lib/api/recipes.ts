@@ -1,5 +1,7 @@
 import { supabase } from '../supabase';
 import { getCurrentUserId } from './utils';
+import { getUnits, getUnitByCode } from './units';
+import { normalizeQuantity } from '../utils/unitConversion';
 import type {
   Recipe,
   RecipeFilters,
@@ -10,12 +12,30 @@ import type {
   RecipeVisibility,
   Category,
   Season,
-  NormalizedUnit,
+  Unit,
+  UnitFamily,
+  BaseUnit,
 } from '@/types';
 
 export async function getRecipes(filters?: RecipeFilters): Promise<Recipe[]> {
+  // Si filtre par ingredient, on doit d'abord trouver les recipe_ids
+  let recipeIds: number[] | null = null;
+  if (filters?.ingredientId) {
+    const { data: riData } = await supabase
+      .from('recipe_ingredients')
+      .select('recipe_id')
+      .eq('ingredient_id', filters.ingredientId);
+    recipeIds = riData?.map((ri) => ri.recipe_id) || [];
+    if (recipeIds.length === 0) {
+      return []; // Aucune recette avec cet ingredient
+    }
+  }
+
   let query = supabase.from('recipes').select('*');
 
+  if (recipeIds) {
+    query = query.in('id', recipeIds);
+  }
   if (filters?.search) {
     query = query.ilike('name', `%${filters.search}%`);
   }
@@ -46,30 +66,44 @@ export async function getRecipe(id: number): Promise<Recipe | null> {
 
   if (error) return null;
 
-  // Get ingredients
+  // Get ingredients with units and translations
   const { data: recipeIngredients } = await supabase
     .from('recipe_ingredients')
     .select(`
       ingredient_id,
       quantity,
-      unit_display,
+      unit_id,
       quantity_normalized,
-      unit_normalized,
       position,
-      ingredients (id, name)
+      ingredients (id, name, translations),
+      units (*)
     `)
     .eq('recipe_id', id)
     .order('position');
 
   const ingredients = (recipeIngredients || []).map((ri: Record<string, unknown>) => {
     const ing = ri.ingredients as Record<string, unknown>;
+    const unitData = ri.units as Record<string, unknown> | null;
+    const unit: Unit | undefined = unitData ? {
+      id: unitData.id as number,
+      code: unitData.code as string,
+      family: unitData.family as UnitFamily,
+      base_unit: unitData.base_unit as BaseUnit,
+      conversion_ratio: Number(unitData.conversion_ratio),
+      translations: unitData.translations as Record<string, { singular: string; plural: string; abbr: string }>,
+      is_displayable: unitData.is_displayable as boolean,
+      display_order: unitData.display_order as number,
+      needs_article: unitData.needs_article as boolean,
+    } : undefined;
+
     return {
       ingredient_id: ri.ingredient_id as number,
       ingredient_name: ing?.name as string || '',
       quantity: ri.quantity as number,
-      unit_display: ri.unit_display as string || 'g',
+      unit_id: ri.unit_id as number,
+      unit,
       quantity_normalized: ri.quantity_normalized as number,
-      unit_normalized: (ri.unit_normalized as NormalizedUnit) || 'g',
+      ingredient_translations: ing?.translations as Record<string, { name?: string; instructions?: string }> | null,
     };
   });
 
@@ -95,19 +129,29 @@ export async function createRecipe(recipe: RecipeCreateInput): Promise<number> {
   if (error) throw error;
 
   if (ingredients && ingredients.length > 0) {
+    // Charger les unites pour calculer quantity_normalized
+    const units = await getUnits();
+    const unitsMap = new Map(units.map((u) => [u.id, u]));
+
     const { error: ingError } = await supabase
       .from('recipe_ingredients')
       .insert(
-        ingredients.map((ing, index) => ({
-          recipe_id: data.id,
-          ingredient_id: ing.ingredient_id,
-          quantity: ing.quantity,
-          unit_display: ing.unit_display,
-          quantity_normalized: ing.quantity_normalized,
-          unit_normalized: ing.unit_normalized,
-          position: index,
-          user_id: userId,
-        }))
+        ingredients.map((ing, index) => {
+          const unit = unitsMap.get(ing.unit_id);
+          const quantityNormalized = unit
+            ? normalizeQuantity(ing.quantity, unit)
+            : ing.quantity;
+
+          return {
+            recipe_id: data.id,
+            ingredient_id: ing.ingredient_id,
+            quantity: ing.quantity,
+            unit_id: ing.unit_id,
+            quantity_normalized: quantityNormalized,
+            position: index,
+            user_id: userId,
+          };
+        })
       );
 
     if (ingError) throw ingError;
@@ -135,19 +179,29 @@ export async function updateRecipe(id: number, recipe: RecipeUpdateInput): Promi
 
     // Insert new ingredients
     if (ingredients.length > 0) {
+      // Charger les unites pour calculer quantity_normalized
+      const units = await getUnits();
+      const unitsMap = new Map(units.map((u) => [u.id, u]));
+
       const { error: ingError } = await supabase
         .from('recipe_ingredients')
         .insert(
-          ingredients.map((ing, index) => ({
-            recipe_id: id,
-            ingredient_id: ing.ingredient_id,
-            quantity: ing.quantity,
-            unit_display: ing.unit_display,
-            quantity_normalized: ing.quantity_normalized,
-            unit_normalized: ing.unit_normalized,
-            position: index,
-            user_id: userId,
-          }))
+          ingredients.map((ing, index) => {
+            const unit = unitsMap.get(ing.unit_id);
+            const quantityNormalized = unit
+              ? normalizeQuantity(ing.quantity, unit)
+              : ing.quantity;
+
+            return {
+              recipe_id: id,
+              ingredient_id: ing.ingredient_id,
+              quantity: ing.quantity,
+              unit_id: ing.unit_id,
+              quantity_normalized: quantityNormalized,
+              position: index,
+              user_id: userId,
+            };
+          })
         );
 
       if (ingError) throw ingError;
@@ -199,14 +253,17 @@ export async function uploadRecipeImage(recipeId: number, file: File): Promise<s
 export async function importRecipes(recipes: RecipeImport[]): Promise<number[]> {
   const ids: number[] = [];
 
+  // Charger les unites une seule fois
+  const units = await getUnits();
+  const unitsByCode = new Map(units.map((u) => [u.code, u]));
+
   for (const recipe of recipes) {
     // Create or get ingredients
     const ingredientIds: {
       ingredient_id: number;
       quantity: number;
-      unit_display: string;
+      unit_id: number;
       quantity_normalized: number;
-      unit_normalized: NormalizedUnit;
     }[] = [];
     const recipeIngredients = recipe.ingredients || [];
 
@@ -233,12 +290,15 @@ export async function importRecipes(recipes: RecipeImport[]): Promise<number[]> 
         existingIng = newIng;
       }
 
+      // Trouver l'unite par code
+      const unit = unitsByCode.get(ing.unit_code) || unitsByCode.get('piece')!;
+      const quantityNormalized = normalizeQuantity(ing.quantity, unit);
+
       ingredientIds.push({
         ingredient_id: existingIng.id,
         quantity: ing.quantity,
-        unit_display: ing.unit_display,
-        quantity_normalized: ing.quantity_normalized,
-        unit_normalized: ing.unit_normalized,
+        unit_id: unit.id,
+        quantity_normalized: quantityNormalized,
       });
     }
 
@@ -288,9 +348,8 @@ export async function importRecipes(recipes: RecipeImport[]): Promise<number[]> 
           recipe_id: newRecipe.id,
           ingredient_id: ing.ingredient_id,
           quantity: ing.quantity,
-          unit_display: ing.unit_display,
+          unit_id: ing.unit_id,
           quantity_normalized: ing.quantity_normalized,
-          unit_normalized: ing.unit_normalized,
         }))
       );
     }

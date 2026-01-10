@@ -1,14 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Menu, X, Settings, ChefHat, LogOut, User } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { Link, useRouter } from "@/i18n/navigation";
+import { Menu, X, Settings, LogOut, User } from "lucide-react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
+import { LanguageSwitcher } from "./LanguageSwitcher";
+
+const LOGO_URL = "https://lmfgojycsquicexylkxi.supabase.co/storage/v1/object/public/assets/logo.jpg";
 
 export function MobileHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const t = useTranslations("nav");
+  const tSettings = useTranslations("settings");
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const { user, signOut } = useAuth();
 
@@ -21,15 +28,21 @@ export function MobileHeader() {
   // Get display name from user metadata or email
   const displayName = user?.user_metadata?.full_name ||
                       user?.email?.split('@')[0] ||
-                      'Utilisateur';
+                      tCommon('user');
 
   return (
     <>
       <header className="md:hidden fixed top-0 left-0 right-0 h-[56px] bg-card border-b z-50">
         <div className="flex items-center justify-between h-full px-4">
           <Link href="/" className="flex items-center gap-2">
-            <ChefHat className="h-6 w-6 text-primary" />
-            <span className="text-lg font-bold">MealPlanner</span>
+            <Image
+              src={LOGO_URL}
+              alt="Cut Logo"
+              width={22}
+              height={22}
+              className="rounded-md object-cover"
+            />
+            <span className="text-4xl font-logo tracking-wide">Cut</span>
           </Link>
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -75,14 +88,18 @@ export function MobileHeader() {
           </div>
         )}
 
-        <nav className="p-2">
+        <nav className="p-2 space-y-2">
+          <div className="px-4 py-2">
+            <LanguageSwitcher />
+          </div>
+
           <Link
             href="/parametres"
             onClick={() => setIsMenuOpen(false)}
             className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
           >
             <Settings className="h-5 w-5" />
-            Parametres
+            {t("settings")}
           </Link>
 
           {user && (
@@ -91,7 +108,7 @@ export function MobileHeader() {
               className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-destructive transition-colors w-full"
             >
               <LogOut className="h-5 w-5" />
-              Deconnexion
+              {tSettings("logout")}
             </button>
           )}
         </nav>

@@ -113,7 +113,7 @@ export async function updateMealPlan(
           await supabase.from('stock').insert({
             ingredient_id: ing.ingredient_id,
             quantity: quantityDiff,
-            unit_display: ing.unit_display,
+            unit_id: ing.unit_id,
             quantity_normalized: quantityDiff,
             unit_normalized: ing.unit_normalized,
             user_id: userId,
@@ -166,7 +166,7 @@ export async function removeMealPlan(id: number): Promise<void> {
           await supabase.from('stock').insert({
             ingredient_id: ing.ingredient_id,
             quantity: quantityToRestore,
-            unit_display: ing.unit_display,
+            unit_id: ing.unit_id,
             quantity_normalized: quantityToRestore,
             unit_normalized: ing.unit_normalized,
             user_id: userId,
